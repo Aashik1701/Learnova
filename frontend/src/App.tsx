@@ -7,6 +7,8 @@ import Hero from "./pages/Hero";
 import Premium from "./pages/Premium";
 import Auth from "./pages/Auth";
 import DashboardNew from "./pages/DashboardNew";
+import StudentDashboard from "./pages/StudentDashboard";
+import TeacherDashboard from "./pages/TeacherDashboard";
 import Lessons from "./pages/Lessons";
 import PracticeNew from "./pages/PracticeNew";
 import Passports from "./pages/Passports";
@@ -29,6 +31,8 @@ const App = () => (
           <Route path="/premium" element={<Premium />} />
           <Route path="/auth" element={<Auth />} />
           <Route path="/dashboard" element={<DashboardNew />} />
+          <Route path="/dashboard/student" element={<StudentDashboard />} />
+          <Route path="/dashboard/teacher" element={<TeacherDashboard />} />
           <Route path="/lessons" element={<Lessons />} />
           <Route path="/practice" element={<PracticeNew />} />
           <Route path="/quiz-proctor" element={<QuizProctor />} />

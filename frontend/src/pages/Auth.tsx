@@ -22,12 +22,23 @@ const Auth = () => {
     learningStyle: 'visual',
     proficiency: 'beginner',
   });
+  const [accountType, setAccountType] = useState<'normal' | 'organizational'>('normal');
+  const [orgRole, setOrgRole] = useState<'student' | 'teacher' | 'admin'>('student');
 
   useEffect(() => {
     // Check if user is already logged in
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session) {
-        navigate("/dashboard");
+        const { data: { user } } = await supabase.auth.getUser();
+        const meta = user?.user_metadata as { account_type?: string; org_role?: string } | undefined;
+        const path = meta?.account_type === 'organizational'
+          ? meta?.org_role === 'student'
+            ? '/dashboard/student'
+            : meta?.org_role === 'teacher'
+              ? '/dashboard/teacher'
+              : '/dashboard'
+          : '/dashboard';
+        navigate(path);
       }
     });
   }, [navigate]);
@@ -44,11 +55,22 @@ const Auth = () => {
 
       if (error) throw error;
 
+      // Fetch user to determine role-based redirect
+      const { data: { user } } = await supabase.auth.getUser();
+      const meta = user?.user_metadata as { account_type?: string; org_role?: string } | undefined;
+      const path = meta?.account_type === 'organizational'
+        ? meta?.org_role === 'student'
+          ? '/dashboard/student'
+          : meta?.org_role === 'teacher'
+            ? '/dashboard/teacher'
+            : '/dashboard'
+        : '/dashboard';
+
       toast({
         title: "Welcome back!",
         description: "Successfully logged in to Learnova.",
       });
-      navigate("/dashboard");
+      navigate(path);
     } catch (error: any) {
       toast({
         title: "Login failed",
@@ -71,6 +93,8 @@ const Auth = () => {
         options: {
           data: {
             full_name: formData.name,
+            account_type: accountType,
+            org_role: accountType === 'organizational' ? orgRole : null,
           },
         },
       });
@@ -94,7 +118,11 @@ const Auth = () => {
         title: "Account created!",
         description: "Your learning journey begins now.",
       });
-      navigate("/dashboard");
+      // Redirect based on selected account type and role
+      const path = accountType === 'organizational'
+        ? (orgRole === 'student' ? '/dashboard/student' : orgRole === 'teacher' ? '/dashboard/teacher' : '/dashboard')
+        : '/dashboard';
+      navigate(path);
     } catch (error: any) {
       toast({
         title: "Signup failed",
@@ -160,6 +188,43 @@ const Auth = () => {
               <TabsContent value="login">
                 <form onSubmit={handleLogin} className="space-y-4">
                   <div className="space-y-2">
+                    <Label>Account Type</Label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button
+                        type="button"
+                        variant={accountType === 'normal' ? 'default' : 'outline'}
+                        onClick={() => setAccountType('normal')}
+                        className="w-full"
+                      >
+                        Normal User
+                      </Button>
+                      <Button
+                        type="button"
+                        variant={accountType === 'organizational' ? 'default' : 'outline'}
+                        onClick={() => setAccountType('organizational')}
+                        className="w-full"
+                      >
+                        Organizational User
+                      </Button>
+                    </div>
+                  </div>
+
+                  {accountType === 'organizational' && (
+                    <div className="space-y-2">
+                      <Label htmlFor="login-org-role">Organizational Role</Label>
+                      <Select value={orgRole} onValueChange={(value: 'student' | 'teacher' | 'admin') => setOrgRole(value)}>
+                        <SelectTrigger id="login-org-role">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="student">Student</SelectItem>
+                          <SelectItem value="teacher">Teacher</SelectItem>
+                          <SelectItem value="admin">Admin</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+                  <div className="space-y-2">
                     <Label htmlFor="login-email">Email</Label>
                     <div className="relative">
                       <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
@@ -210,6 +275,43 @@ const Auth = () => {
               {/* Signup Tab */}
               <TabsContent value="signup">
                 <form onSubmit={handleSignup} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Account Type</Label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button
+                        type="button"
+                        variant={accountType === 'normal' ? 'default' : 'outline'}
+                        onClick={() => setAccountType('normal')}
+                        className="w-full"
+                      >
+                        Normal User
+                      </Button>
+                      <Button
+                        type="button"
+                        variant={accountType === 'organizational' ? 'default' : 'outline'}
+                        onClick={() => setAccountType('organizational')}
+                        className="w-full"
+                      >
+                        Organizational User
+                      </Button>
+                    </div>
+                  </div>
+
+                  {accountType === 'organizational' && (
+                    <div className="space-y-2">
+                      <Label htmlFor="signup-org-role">Organizational Role</Label>
+                      <Select value={orgRole} onValueChange={(value: 'student' | 'teacher' | 'admin') => setOrgRole(value)}>
+                        <SelectTrigger id="signup-org-role">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="student">Student</SelectItem>
+                          <SelectItem value="teacher">Teacher</SelectItem>
+                          <SelectItem value="admin">Admin</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
                   <div className="space-y-2">
                     <Label htmlFor="signup-name">Full Name</Label>
                     <div className="relative">
@@ -272,34 +374,38 @@ const Auth = () => {
                     </Select>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="learning-style">Learning Style</Label>
-                    <Select value={formData.learningStyle} onValueChange={(value) => setFormData({ ...formData, learningStyle: value })}>
-                      <SelectTrigger id="learning-style">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="visual">👁️ Visual</SelectItem>
-                        <SelectItem value="auditory">🎧 Auditory</SelectItem>
-                        <SelectItem value="kinesthetic">✋ Kinesthetic</SelectItem>
-                        <SelectItem value="reading">📖 Reading/Writing</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  {(accountType !== 'organizational' || orgRole === 'student') && (
+                    <div className="space-y-2">
+                      <Label htmlFor="learning-style">Learning Style</Label>
+                      <Select value={formData.learningStyle} onValueChange={(value) => setFormData({ ...formData, learningStyle: value })}>
+                        <SelectTrigger id="learning-style">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="visual">👁️ Visual</SelectItem>
+                          <SelectItem value="auditory">🎧 Auditory</SelectItem>
+                          <SelectItem value="kinesthetic">✋ Kinesthetic</SelectItem>
+                          <SelectItem value="reading">📖 Reading/Writing</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
 
-                  <div className="space-y-2">
-                    <Label htmlFor="proficiency">Proficiency Level</Label>
-                    <Select value={formData.proficiency} onValueChange={(value) => setFormData({ ...formData, proficiency: value })}>
-                      <SelectTrigger id="proficiency">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="beginner">🌱 Beginner</SelectItem>
-                        <SelectItem value="intermediate">🌿 Intermediate</SelectItem>
-                        <SelectItem value="advanced">🌳 Advanced</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  {(accountType !== 'organizational' || orgRole === 'student') && (
+                    <div className="space-y-2">
+                      <Label htmlFor="proficiency">Proficiency Level</Label>
+                      <Select value={formData.proficiency} onValueChange={(value) => setFormData({ ...formData, proficiency: value })}>
+                        <SelectTrigger id="proficiency">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="beginner">🌱 Beginner</SelectItem>
+                          <SelectItem value="intermediate">🌿 Intermediate</SelectItem>
+                          <SelectItem value="advanced">🌳 Advanced</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
 
                   <Button 
                     type="submit" 
