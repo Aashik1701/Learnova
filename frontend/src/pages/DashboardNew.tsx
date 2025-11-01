@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Brain, BookOpen, Users, Shield, TrendingUp, Award, Clock, Target, ArrowRight, Sparkles, Calendar } from "lucide-react";
+import { Brain, BookOpen, Users, Shield, TrendingUp, Award, Clock, Target, ArrowRight, Sparkles, Calendar, Crown } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 
@@ -78,6 +78,9 @@ const DashboardNew = () => {
             </span>
           </div>
           <nav className="flex items-center gap-6">
+            <Button variant="outline" className="rounded-xl gap-2" onClick={() => navigate("/premium")}>
+              <Crown className="h-4 w-4 text-amber-500" /> Buy Premium
+            </Button>
             <Button variant="ghost" onClick={() => navigate("/dashboard")} className="rounded-xl">Dashboard</Button>
             <Button variant="ghost" onClick={() => navigate("/lessons")} className="rounded-xl">Lessons</Button>
             <Button variant="ghost" onClick={() => navigate("/practice")} className="rounded-xl">Practice</Button>

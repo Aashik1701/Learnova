@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Brain, ArrowLeft, Plus, BookOpen, Trash2, Edit, PlayCircle, FileText, CheckCircle2, Loader2 } from "lucide-react";
+import { Brain, ArrowLeft, Plus, BookOpen, Trash2, Edit, PlayCircle, FileText, CheckCircle2, Loader2, Crown } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
@@ -846,10 +846,15 @@ const Lessons = () => {
               </span>
             </div>
           </div>
-          <Button onClick={() => updateState({ viewMode: 'create' as ViewMode })} size="lg" className="gap-2">
-            <Plus className="h-5 w-5" />
-            Create Lesson
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" className="gap-2" onClick={() => navigate("/premium")}>
+              <Crown className="h-4 w-4 text-amber-500" /> Buy Premium
+            </Button>
+            <Button onClick={() => updateState({ viewMode: 'create' as ViewMode })} size="lg" className="gap-2">
+              <Plus className="h-5 w-5" />
+              Create Lesson
+            </Button>
+          </div>
         </div>
       </header>
 
