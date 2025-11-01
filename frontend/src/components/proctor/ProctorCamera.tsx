@@ -24,6 +24,9 @@ const ProctorCamera = ({ isActive = true, onStreamReady }: ProctorCameraProps) =
   };
 
   const startStream = useCallback(async () => {
+    // Stop any existing stream first
+    stopStream();
+    
     try {
       const constraints: MediaStreamConstraints = {
         video: {
@@ -35,10 +38,46 @@ const ProctorCamera = ({ isActive = true, onStreamReady }: ProctorCameraProps) =
 
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
       streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        await videoRef.current.play().catch(err => console.error("Video play error:", err));
-      }
+      
+      // Wait for video element to be available - use multiple attempts if needed
+      let attempts = 0;
+      const maxAttempts = 5;
+      const trySetVideo = async () => {
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          // Force play and ensure visibility
+          try {
+            await videoRef.current.play();
+            // Ensure video is visible and properly sized
+            if (videoRef.current) {
+              videoRef.current.style.display = 'block';
+              videoRef.current.style.visibility = 'visible';
+              videoRef.current.style.width = '100%';
+              videoRef.current.style.height = '100%';
+              videoRef.current.style.objectFit = 'cover';
+            }
+            console.log("Camera stream started successfully");
+          } catch (playErr) {
+            console.error("Video play error:", playErr);
+            // Try again after a short delay
+            attempts++;
+            if (attempts < maxAttempts) {
+              setTimeout(async () => {
+                if (videoRef.current && videoRef.current.paused) {
+                  await videoRef.current.play().catch(err => console.error("Video play retry error:", err));
+                }
+              }, 100 * attempts);
+            }
+          }
+        } else {
+          // Video element not ready yet, retry
+          attempts++;
+          if (attempts < maxAttempts) {
+            setTimeout(trySetVideo, 100 * attempts);
+          }
+        }
+      };
+      await trySetVideo();
       setIsStreaming(true);
       setError(null);
       onStreamReady?.();
@@ -54,6 +93,8 @@ const ProctorCamera = ({ isActive = true, onStreamReady }: ProctorCameraProps) =
           streamRef.current = fallback;
           if (videoRef.current) {
             videoRef.current.srcObject = fallback;
+            videoRef.current.style.display = 'block';
+            videoRef.current.style.visibility = 'visible';
             await videoRef.current.play().catch(e => console.error("Video play error:", e));
           }
           setIsStreaming(true);
@@ -94,19 +135,23 @@ const ProctorCamera = ({ isActive = true, onStreamReady }: ProctorCameraProps) =
 
     // Try to read permission state if available
     if (navigator.permissions?.query) {
-  // Some browsers (Safari) may not support 'camera' in permissions API
-      navigator.permissions.query({ name: 'camera' }).then((status: PermissionStatus) => {
-        setPermission(status.state as PermissionState as CameraPermissionState);
-        status.onchange = () => setPermission(status.state as PermissionState as CameraPermissionState);
+      // Some browsers (Safari) may not support 'camera' in permissions API
+      navigator.permissions.query({ name: 'camera' as PermissionName }).then((status: PermissionStatus) => {
+        setPermission(status.state as CameraPermissionState);
+        status.onchange = () => setPermission(status.state as CameraPermissionState);
       }).catch(() => setPermission("unsupported"));
     } else {
       setPermission("unsupported");
     }
 
-    startStream();
+    // Start stream with a small delay to ensure component is fully mounted
+    const timeoutId = setTimeout(() => {
+      startStream();
+    }, 100);
 
     // Cleanup on unmount
     return () => {
+      clearTimeout(timeoutId);
       stopStream();
     };
   }, [isActive, isSecure, startStream]);
@@ -117,9 +162,10 @@ const ProctorCamera = ({ isActive = true, onStreamReady }: ProctorCameraProps) =
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.5 }}
       className="relative w-full max-w-md rounded-2xl overflow-hidden border-2 border-cyan-500/30 shadow-2xl bg-slate-800"
+      style={{ minHeight: '200px' }}
     >
       {/* Video feed */}
-      <div className="relative aspect-video bg-slate-900">
+      <div className="relative aspect-video bg-slate-900" style={{ minHeight: '200px', width: '100%' }}>
         {/* Insecure context warning */}
         {!isSecure && (
           <div className="absolute inset-x-0 top-0 z-10 m-3 rounded-lg bg-amber-500/20 border border-amber-400/40 p-3 text-amber-200 text-xs">
@@ -134,10 +180,35 @@ const ProctorCamera = ({ isActive = true, onStreamReady }: ProctorCameraProps) =
               playsInline
               muted
               className="w-full h-full object-cover"
+              style={{ 
+                display: 'block', 
+                visibility: 'visible',
+                width: '100%',
+                height: '100%',
+                minHeight: '200px',
+                objectFit: 'cover',
+                backgroundColor: '#0f172a'
+              }}
               onLoadedMetadata={(e) => {
                 // Ensure video plays when metadata is loaded
                 const video = e.currentTarget;
                 video.play().catch(err => console.error("Video play error:", err));
+              }}
+              onCanPlay={() => {
+                // Ensure video plays when it can play
+                if (videoRef.current && videoRef.current.paused) {
+                  videoRef.current.play().catch(err => console.error("Video play error:", err));
+                }
+              }}
+              onLoadedData={() => {
+                // Force video to be visible and playing
+                if (videoRef.current) {
+                  videoRef.current.style.display = 'block';
+                  videoRef.current.style.visibility = 'visible';
+                  if (videoRef.current.paused) {
+                    videoRef.current.play().catch(err => console.error("Video play error on loadedData:", err));
+                  }
+                }
               }}
             />
             

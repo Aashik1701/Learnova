@@ -12,6 +12,8 @@ import PracticeNew from "./pages/PracticeNew";
 import Passports from "./pages/Passports";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
+import Verify from "./pages/Verify";
+import QuizProctor from "./pages/QuizProctor";
 import "./lib/i18n";
 
 const queryClient = new QueryClient();

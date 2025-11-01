@@ -1,12 +1,15 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { ArrowLeft, Trophy, XCircle, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, Trophy, XCircle, CheckCircle2, Shield, AlertTriangle, CheckCircle } from "lucide-react";
 import { Chapter } from "@/pages/Practice";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
+import { Checkbox } from "@/components/ui/checkbox";
 import { motion, AnimatePresence } from "framer-motion";
+import ProctorCamera from "@/components/proctor/ProctorCamera";
+import ProctorAlerts from "@/components/proctor/ProctorAlerts";
 
 interface QuizViewProps {
   chapter: Chapter;
@@ -18,9 +21,31 @@ export const QuizView = ({ chapter, onComplete, onBack }: QuizViewProps) => {
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [selectedAnswers, setSelectedAnswers] = useState<number[]>([]);
   const [showResults, setShowResults] = useState(false);
+  const [enableProctor, setEnableProctor] = useState(false);
+  const [showProctorConsent, setShowProctorConsent] = useState(false);
+  const [proctorModeActive, setProctorModeActive] = useState(false);
+  const [cameraReady, setCameraReady] = useState(false);
 
   const questions = chapter.quiz.questions;
   const totalQuestions = questions.length;
+
+  const handleProctorToggle = (checked: boolean | "indeterminate") => {
+    const isChecked = checked === true;
+    setEnableProctor(isChecked);
+    if (isChecked) {
+      setShowProctorConsent(true);
+    }
+  };
+
+  const handleConsentAgree = () => {
+    setProctorModeActive(true);
+    setShowProctorConsent(false);
+  };
+
+  const handleConsentCancel = () => {
+    setEnableProctor(false);
+    setShowProctorConsent(false);
+  };
 
   const handleAnswerSelect = (answerIndex: number) => {
     const newAnswers = [...selectedAnswers];
@@ -53,6 +78,80 @@ export const QuizView = ({ chapter, onComplete, onBack }: QuizViewProps) => {
     const score = calculateScore();
     onComplete(score);
   };
+
+  // Proctor Consent Screen
+  if (showProctorConsent) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-background via-muted to-background flex items-center justify-center p-6">
+        <Card className="max-w-4xl w-full">
+          <CardHeader>
+            <div className="flex items-center gap-3 mb-4">
+              <Shield className="h-8 w-8 text-primary" />
+              <CardTitle className="text-2xl">Enable Proctor Mode</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="grid md:grid-cols-2 gap-6">
+              <div>
+                <h3 className="font-semibold mb-4 flex items-center gap-2">
+                  <AlertTriangle className="h-5 w-5 text-yellow-500" />
+                  Proctoring Requirements
+                </h3>
+                <ul className="space-y-3 text-sm text-muted-foreground">
+                  <li className="flex items-start gap-2">
+                    <CheckCircle className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                    <span>Camera must remain on throughout the quiz</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                    <span>Ensure good lighting and face visibility</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                    <span>Stay in frame and avoid distractions</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                    <span>Do not switch tabs or leave the window</span>
+                  </li>
+                </ul>
+              </div>
+              <div>
+                <h3 className="font-semibold mb-4">Camera Preview</h3>
+                <ProctorCamera 
+                  isActive={true}
+                  onStreamReady={() => setCameraReady(true)}
+                />
+                {cameraReady && (
+                  <p className="text-sm text-green-600 dark:text-green-400 mt-3 flex items-center gap-2">
+                    <CheckCircle className="h-4 w-4" />
+                    Camera ready
+                  </p>
+                )}
+              </div>
+            </div>
+            <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4">
+              <p className="text-yellow-700 dark:text-yellow-400 text-sm">
+                <strong>Privacy Notice:</strong> Video feed is analyzed in real-time by AI. Data is encrypted and used only for integrity monitoring.
+              </p>
+            </div>
+            <div className="flex gap-4">
+              <Button variant="outline" onClick={handleConsentCancel} className="flex-1">
+                Cancel
+              </Button>
+              <Button 
+                onClick={handleConsentAgree}
+                disabled={!cameraReady}
+                className="flex-1"
+              >
+                {cameraReady ? "I Agree - Start Quiz" : "Waiting for camera..."}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   if (showResults) {
     const score = calculateScore();
@@ -198,11 +297,19 @@ export const QuizView = ({ chapter, onComplete, onBack }: QuizViewProps) => {
             <span className="text-2xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
               Quiz
             </span>
+            {proctorModeActive && (
+              <div className="ml-4 flex items-center gap-2 px-3 py-1 bg-cyan-500/10 border border-cyan-500/30 rounded-full">
+                <Shield className="h-4 w-4 text-cyan-400" />
+                <span className="text-xs text-cyan-400 font-semibold">PROCTOR ACTIVE</span>
+              </div>
+            )}
           </div>
         </div>
       </header>
 
-      <main className="container mx-auto px-6 py-8 max-w-2xl">
+      <main className="container mx-auto px-6 py-8 max-w-7xl">
+        <div className={proctorModeActive ? "grid lg:grid-cols-3 gap-6" : ""}>
+          <div className={proctorModeActive ? "lg:col-span-2" : ""}>
         <AnimatePresence mode="wait">
           <motion.div
             key={currentQuestion}
@@ -220,6 +327,29 @@ export const QuizView = ({ chapter, onComplete, onBack }: QuizViewProps) => {
                 <Progress value={progress} className="h-2" />
               </CardHeader>
               <CardContent className="space-y-6">
+                {/* Proctor Mode Checkbox - Only show if not already active */}
+                {!proctorModeActive && (
+                  <motion.div 
+                    className="flex items-center space-x-2 p-4 rounded-lg border bg-muted/50"
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.05 }}
+                  >
+                    <Checkbox 
+                      id="enable-proctor" 
+                      checked={enableProctor}
+                      onCheckedChange={handleProctorToggle}
+                    />
+                    <Label 
+                      htmlFor="enable-proctor" 
+                      className="cursor-pointer flex items-center gap-2 text-sm font-medium"
+                    >
+                      <Shield className="h-4 w-4 text-primary" />
+                      Enable Proctor Mode (AI monitoring)
+                    </Label>
+                  </motion.div>
+                )}
+
                 <motion.div 
                   className="space-y-4"
                   initial={{ opacity: 0, y: 10 }}
@@ -275,6 +405,32 @@ export const QuizView = ({ chapter, onComplete, onBack }: QuizViewProps) => {
             </Card>
           </motion.div>
         </AnimatePresence>
+          </div>
+
+          {/* Proctor Sidebar */}
+          {proctorModeActive && (
+            <div className="space-y-6 lg:sticky lg:top-6">
+              <Card className="overflow-hidden">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <Shield className="h-4 w-4 text-primary" />
+                    AI Monitoring
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-4">
+                  <div className="w-full">
+                    <ProctorCamera key={`quiz-camera-${proctorModeActive}`} isActive={proctorModeActive} />
+                  </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="pt-6">
+                  <ProctorAlerts isActive={true} />
+                </CardContent>
+              </Card>
+            </div>
+          )}
+        </div>
       </main>
     </div>
   );
