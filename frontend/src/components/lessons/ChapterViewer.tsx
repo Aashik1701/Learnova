@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, BookOpen, ArrowRight } from "lucide-react";
+import { ArrowLeft, BookOpen, ArrowRight, Volume2 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface Chapter {
@@ -18,11 +18,34 @@ interface ChapterViewerProps {
 }
 
 export const ChapterViewer = ({ chapter, onComplete, onBack }: ChapterViewerProps) => {
+  const handleSpeak = () => {
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+    window.speechSynthesis.cancel();
+    const text = `${chapter.title}. ${chapter.content}`;
+    if (!text) return;
+    const utter = new SpeechSynthesisUtterance(text);
+    window.speechSynthesis.speak(utter);
+  };
+
+  const handleBack = () => {
+    if (typeof window !== "undefined" && "speechSynthesis" in window) {
+      window.speechSynthesis.cancel();
+    }
+    onBack();
+  };
+
+  const handleComplete = () => {
+    if (typeof window !== "undefined" && "speechSynthesis" in window) {
+      window.speechSynthesis.cancel();
+    }
+    onComplete();
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-muted to-background">
       <header className="border-b border-border bg-card/50 backdrop-blur-sm">
         <div className="container mx-auto px-6 py-4 flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={onBack}>
+          <Button variant="ghost" size="icon" onClick={handleBack}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div className="flex items-center gap-2">
@@ -30,6 +53,11 @@ export const ChapterViewer = ({ chapter, onComplete, onBack }: ChapterViewerProp
             <span className="text-2xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
               {chapter.title}
             </span>
+          </div>
+          <div className="ml-auto">
+            <Button variant="outline" size="icon" onClick={handleSpeak} title="Listen">
+              <Volume2 className="h-5 w-5" />
+            </Button>
           </div>
         </div>
       </header>
@@ -51,7 +79,7 @@ export const ChapterViewer = ({ chapter, onComplete, onBack }: ChapterViewerProp
             </ScrollArea>
 
             <div className="flex justify-end pt-6 border-t">
-              <Button onClick={onComplete} size="lg" className="gap-2">
+              <Button onClick={handleComplete} size="lg" className="gap-2">
                 Take Quiz
                 <ArrowRight className="h-5 w-5" />
               </Button>
