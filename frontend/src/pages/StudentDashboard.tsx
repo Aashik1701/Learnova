@@ -121,13 +121,13 @@ const StudentDashboard = () => {
               <StatCard icon={<Award className="h-6 w-6" />} title="Achievements" value="4" change="1 new" variant="warning" delay={0.3} />
             </div>
 
-            <motion.div className="grid lg:grid-cols-3 gap-6 my-8" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.8 }}>
-              <Card className="rounded-xl shadow-lg lg:col-span-2">
+            <motion.div className="grid lg:grid-cols-3 gap-6 my-8 items-stretch" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.8 }}>
+              <Card className="rounded-xl shadow-lg lg:col-span-2 h-full flex flex-col">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2"><CalendarClock className="h-5 w-5 text-primary" /> Upcoming</CardTitle>
                   <CardDescription>Quizzes and assignments assigned to you</CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-3">
+                <CardContent className="space-y-3 flex-1">
                   {upcoming.length === 0 ? (
                     <p className="text-muted-foreground">No upcoming items.</p>
                   ) : (
@@ -144,28 +144,28 @@ const StudentDashboard = () => {
                 </CardContent>
               </Card>
 
-              <Card className="rounded-xl shadow-lg">
+              <Card className="rounded-xl shadow-lg h-full flex flex-col">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2"><NotebookPen className="h-5 w-5 text-primary" /> Notes</CardTitle>
                   <CardDescription>Quick access</CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-3">
+                <CardContent className="space-y-3 flex-1 flex flex-col justify-between">
                   <Button className="w-full rounded-xl" variant="secondary">View Notes</Button>
                 </CardContent>
               </Card>
             </motion.div>
 
-            <motion.div className="grid lg:grid-cols-3 gap-6 mb-8" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.9 }}>
-              <Card className="rounded-xl shadow-lg lg:col-span-2">
+            <motion.div className="grid lg:grid-cols-3 gap-6 mb-8 items-stretch" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.9 }}>
+              <Card className="rounded-xl shadow-lg lg:col-span-2 h-full flex flex-col">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2"><ListChecks className="h-5 w-5 text-primary" /> Completed Quizzes</CardTitle>
                   <CardDescription>Results and scores</CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="flex-1">
                   {completed.length === 0 ? (
                     <p className="text-muted-foreground">No completed quizzes yet.</p>
                   ) : (
-                    <div className="overflow-x-auto">
+                    <div className="overflow-x-auto rounded-xl border">
                       <table className="w-full text-sm">
                         <thead className="text-muted-foreground">
                           <tr className="border-b">
@@ -191,16 +191,16 @@ const StudentDashboard = () => {
                 </CardContent>
               </Card>
 
-              <Card className="rounded-xl shadow-lg">
+              <Card className="rounded-xl shadow-lg h-full flex flex-col">
                 <CardHeader>
                   <CardTitle>Performance Overview</CardTitle>
                   <CardDescription>Recent scores</CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="flex-1 flex items-center">
                   {completed.length === 0 ? (
                     <p className="text-muted-foreground">No data to display.</p>
                   ) : (
-                    <ChartContainer className="h-64" config={{ score: { label: "Score", color: "hsl(var(--primary))" } }}>
+                    <ChartContainer className="h-64 w-full" config={{ score: { label: "Score", color: "hsl(var(--primary))" } }}>
                       <LineChart data={completed.map(c => ({ name: c.title, score: c.score }))} margin={{ left: 12, right: 12 }}>
                         <CartesianGrid vertical={false} strokeDasharray="3 3" />
                         <XAxis dataKey="name" tickLine={false} axisLine={false} interval={0} angle={-15} height={60} textAnchor="end" />
@@ -214,13 +214,13 @@ const StudentDashboard = () => {
               </Card>
             </motion.div>
 
-            <motion.div className="grid lg:grid-cols-3 gap-6" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 1.0 }}>
-              <Card className="rounded-xl shadow-lg">
+            <motion.div className="grid lg:grid-cols-3 gap-6 items-stretch" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 1.0 }}>
+              <Card className="rounded-xl shadow-lg h-full flex flex-col">
                 <CardHeader>
                   <CardTitle>Subject Mix</CardTitle>
                   <CardDescription>Distribution of completed quizzes</CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="flex-1 flex items-center">
                   {completed.length === 0 ? (
                     <p className="text-muted-foreground">No data to display.</p>
                   ) : (
@@ -230,7 +230,7 @@ const StudentDashboard = () => {
                       const data = Object.entries(bySubject).map(([name, value]) => ({ name, value }));
                       const colors = ["#6366F1", "#22C55E", "#F59E0B", "#EF4444", "#06B6D4"]; // fallback palette
                       return (
-                        <ChartContainer className="h-64" config={{ value: { label: "Count", color: "hsl(var(--primary))" } }}>
+                        <ChartContainer className="h-64 w-full" config={{ value: { label: "Count", color: "hsl(var(--primary))" } }}>
                           <PieChart>
                             <ChartTooltip content={<ChartTooltipContent hideIndicator nameKey="name" />} />
                             <ChartLegend content={<ChartLegendContent />} />
@@ -256,16 +256,16 @@ const StudentDashboard = () => {
                 </CardContent>
               </Card>
 
-              <Card className="rounded-xl shadow-lg lg:col-span-2">
+              <Card className="rounded-xl shadow-lg lg:col-span-2 h-full flex flex-col">
                 <CardHeader>
                   <CardTitle>Consistency</CardTitle>
                   <CardDescription>Rolling performance trend</CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="flex-1 flex items-center">
                   {completed.length === 0 ? (
                     <p className="text-muted-foreground">No data to display.</p>
                   ) : (
-                    <ChartContainer className="h-64" config={{ score: { label: "Score", color: "hsl(var(--primary))" } }}>
+                    <ChartContainer className="h-64 w-full" config={{ score: { label: "Score", color: "hsl(var(--primary))" } }}>
                       <BarChart data={completed.map(c => ({ name: c.title, score: c.score }))} margin={{ left: 12, right: 12 }}>
                         <CartesianGrid vertical={false} strokeDasharray="3 3" />
                         <XAxis dataKey="name" tickLine={false} axisLine={false} interval={0} angle={-15} height={60} textAnchor="end" />
