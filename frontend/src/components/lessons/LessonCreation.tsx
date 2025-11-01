@@ -212,7 +212,7 @@ export const LessonCreation = ({ onCompleteUpload, onCompleteText, onCancel, isL
                       Processing...
                     </>
                   ) : (
-                    'Generate Questions'
+                    mode === 'upload' ? 'Create Lesson' : 'Generate Questions'
                   )}
                 </Button>
               </div>
