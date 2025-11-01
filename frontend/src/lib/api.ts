@@ -93,3 +93,61 @@ export const generateStudyMaterials = async (
     throw error;
   }
 };
+
+// Text-based generation (topic + description)
+export const generateQuestionnaireFromText = async (
+  lessonName: string,
+  description: string
+): Promise<QuestionnaireResponse> => {
+  try {
+    const response = await fetch(`${import.meta.env.VITE_BASE_URL}/api/generate-questionnaire-text`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ lesson_name: lessonName, description })
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error.message || "Failed to generate questionnaire");
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Error generating questionnaire (text):", error);
+    toast({
+      title: "Error",
+      description: error instanceof Error ? error.message : "Failed to generate questionnaire. Please try again.",
+      variant: "destructive",
+    });
+    throw error;
+  }
+};
+
+export const generateStudyMaterialsFromText = async (
+  lessonName: string,
+  description: string,
+  userResponses: Array<{
+    question: string;
+    selected_option: string;
+    is_correct: boolean;
+    correct_answer: string;
+  }>
+): Promise<StudyMaterialsResponse> => {
+  try {
+    const response = await fetch(`${import.meta.env.VITE_BASE_URL}/api/generate-study-materials-text`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ lesson_name: lessonName, description, user_responses: userResponses })
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error.message || "Failed to generate study materials");
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Error generating study materials (text):", error);
+    throw error;
+  }
+};

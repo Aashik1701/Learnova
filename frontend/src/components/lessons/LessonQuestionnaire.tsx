@@ -9,6 +9,8 @@ import {
   generateQuestionnaire, 
   QuestionnaireQuestion, 
   generateStudyMaterials,
+  generateQuestionnaireFromText,
+  generateStudyMaterialsFromText,
   StudyMaterialsResponse
 } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
@@ -29,13 +31,14 @@ export interface QuestionnaireAnswer {
 
 interface LessonQuestionnaireProps {
   lessonName: string;
-  file: File;
+  file?: File;
+  description?: string;
   onComplete: (answers: QuestionnaireAnswer[]) => void;
   onCancel: () => void;
   onError?: (error: Error) => void;
 }
 
-export const LessonQuestionnaire = ({ lessonName, file, onComplete, onCancel, onError }: LessonQuestionnaireProps) => {
+export const LessonQuestionnaire = ({ lessonName, file, description, onComplete, onCancel, onError }: LessonQuestionnaireProps) => {
   const [isLoading, setIsLoading] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
   const [questions, setQuestions] = useState<QuestionnaireQuestion[]>([]);
@@ -47,7 +50,7 @@ export const LessonQuestionnaire = ({ lessonName, file, onComplete, onCancel, on
   const { toast } = useToast();
   const hasFetchedQuestions = useRef(false);
   const [studyMaterials, setStudyMaterials] = useState<StudyMaterialsResponse | null>(null);
-  
+
   const scoreMessage = score >= 70
     ? "Great job! Our AI is tailoring an overall review to reinforce your knowledge."
     : "Our AI is creating a detailed lesson plan to help you master these concepts.";
@@ -61,7 +64,14 @@ export const LessonQuestionnaire = ({ lessonName, file, onComplete, onCancel, on
       
       try {
         setIsLoading(true);
-        const response = await generateQuestionnaire(lessonName, file);
+        let response;
+        if (description && description.trim().length > 0) {
+          response = await generateQuestionnaireFromText(lessonName, description);
+        } else if (file) {
+          response = await generateQuestionnaire(lessonName, file);
+        } else {
+          throw new Error("No input provided: either file or description is required");
+        }
         setQuestions(response.questions);
       } catch (error) {
         console.error("Failed to generate questions:", error);
@@ -77,14 +87,14 @@ export const LessonQuestionnaire = ({ lessonName, file, onComplete, onCancel, on
     };
 
     fetchQuestions();
-  }, [lessonName, file, onError, toast]);
+  }, [lessonName, file, description, onError, toast]);
 
   const handleAnswerSelect = (questionIndex: number, answerIndex: number) => {
     if (submitted) return;
 
     const question = questions[questionIndex];
     // The API returns correctAnswer (not correct_answer) as the index
-    const correctAnswerIndex = question.correctAnswer || question.correct_answer;
+    const correctAnswerIndex = question.correct_answer;
     const isCorrect = answerIndex === correctAnswerIndex;
     
     setAnswers(prev => ({
@@ -116,7 +126,7 @@ export const LessonQuestionnaire = ({ lessonName, file, onComplete, onCancel, on
     let correctCount = 0;
     const questionnaireAnswers: QuestionnaireAnswer[] = questions.map((q, idx) => {
       const userAnswer = answers[idx];
-      const correctAnswerIndex = q.correctAnswer || q.correct_answer;
+      const correctAnswerIndex = q.correct_answer;
       const isCorrect = userAnswer?.selectedIndex === correctAnswerIndex;
       
       if (isCorrect) correctCount++;
@@ -264,7 +274,7 @@ export const LessonQuestionnaire = ({ lessonName, file, onComplete, onCancel, on
                   setIsGenerating(true);
                   const userResponses = questions.map((q, idx) => {
                     const userAnswer = answers[idx];
-                    const correctAnswerIndex = q.correctAnswer || q.correct_answer;
+                    const correctAnswerIndex = q.correct_answer;
                     return {
                       question: q.question,
                       selected_option: userAnswer?.answer || "",
@@ -273,11 +283,22 @@ export const LessonQuestionnaire = ({ lessonName, file, onComplete, onCancel, on
                     };
                   });
                   
-                  const materials = await generateStudyMaterials(
-                    lessonName,
-                    file,
-                    userResponses
-                  );
+                  let materials: StudyMaterialsResponse;
+                  if (description && description.trim().length > 0) {
+                    materials = await generateStudyMaterialsFromText(
+                      lessonName,
+                      description,
+                      userResponses
+                    );
+                  } else if (file) {
+                    materials = await generateStudyMaterials(
+                      lessonName,
+                      file,
+                      userResponses
+                    );
+                  } else {
+                    throw new Error("No input provided: either file or description is required");
+                  }
                   
                   // Store study materials in localStorage
                   localStorage.setItem(`study_materials_${Date.now()}`, JSON.stringify(materials));
@@ -294,7 +315,7 @@ export const LessonQuestionnaire = ({ lessonName, file, onComplete, onCancel, on
                       question: q.question,
                       answer: answers[idx]?.answer || "",
                       isCorrect: answers[idx]?.isCorrect || false,
-                      correctAnswer: q.options[q.correctAnswer || q.correct_answer]
+                      correctAnswer: q.options[q.correct_answer]
                     })));
                   }
                 } catch (error) {

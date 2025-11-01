@@ -7,10 +7,12 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { LessonCreation } from "@/components/lessons/LessonCreation";
 import { LessonQuestionnaire, QuestionnaireAnswer } from "@/components/lessons/LessonQuestionnaire";
+import { LessonSurvey, type SurveyAnswers } from "@/components/lessons/LessonSurvey";
 import { LessonLearning } from "@/components/lessons/LessonLearning";
 import { generateChapters } from "@/lib/lesson-generator";
 import { useToast } from "@/hooks/use-toast";
 import { formatFileSize } from "@/lib/utils";
+
 import {
   AlertDialog,
   AlertDialogAction,
@@ -37,12 +39,6 @@ export interface StudyMaterial {
   content?: string;
 }
 
-export interface QuestionnaireAnswer {
-  question: string;
-  answer: string;
-  isCorrect: boolean;
-  correctAnswer?: string;
-}
 
 export interface QuestionnaireData {
   answers: QuestionnaireAnswer[];
@@ -85,7 +81,7 @@ const Lessons = () => {
     lessons: [] as Lesson[],
     viewMode: 'dashboard' as ViewMode,
     currentLesson: null as Lesson | null,
-    tempLessonData: null as { name: string; file: File } | null,
+    tempLessonData: null as { name: string; file?: File; description?: string } | null,
     isLoading: false,
     deleteDialogOpen: false,
     lessonToDelete: null as string | null,
@@ -107,6 +103,47 @@ const Lessons = () => {
   // Helper function to update state
   const updateState = (updates: Partial<typeof state>) => {
     setState(prev => ({ ...prev, ...updates }));
+  };
+
+  // Handle general survey (topic-based flow) completion
+  const handleSurveyComplete = (survey: SurveyAnswers) => {
+    if (!tempLessonData) return;
+
+    // Generate chapters based on general survey responses
+    const chapters = generateChapters(tempLessonData.name, survey as any);
+
+    const lessonId = Date.now().toString();
+    const newLesson: Lesson = {
+      id: lessonId,
+      name: tempLessonData.name,
+      fileName: tempLessonData.file?.name || 'Topic',
+      material: {
+        name: tempLessonData.file?.name || 'Topic',
+        size: tempLessonData.file?.size || 0,
+        type: tempLessonData.file?.type || 'text/plain',
+        content: tempLessonData.description || ''
+      },
+      chapters,
+      questionnaire: { answers: [], score: 0, completed: true },
+      progress: 0,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+
+    const updatedLessons = [...lessons, newLesson];
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedLessons));
+    } catch (e) {
+      console.error('Failed to save lessons to localStorage:', e);
+    }
+
+    updateState({
+      lessons: updatedLessons,
+      tempLessonData: null,
+      currentLesson: newLesson,
+      viewMode: 'learning' as ViewMode,
+      isLoading: false
+    });
   };
 
   // Load lessons from localStorage when component mounts
@@ -173,6 +210,14 @@ const Lessons = () => {
     }
   };
 
+  // Handle lesson creation from topic description
+  const handleCreateLessonFromText = (name: string, description: string) => {
+    updateState({ 
+      tempLessonData: { name, description },
+      viewMode: 'questionnaire' as ViewMode
+    });
+  };
+
   // Handle questionnaire completion
   const handleQuestionnaireComplete = (answers: QuestionnaireAnswer[]) => {
     if (!tempLessonData) return;
@@ -194,7 +239,7 @@ const Lessons = () => {
         answer: a.answer,
         isCorrect: a.isCorrect
       }))
-    });
+    } as any);
 
     // Create the questionnaire data
     const questionnaire: QuestionnaireData = {
@@ -207,18 +252,20 @@ const Lessons = () => {
 
     // Store file with lesson ID for later retrieval
     const lessonId = Date.now().toString();
-    lessonFiles.set(lessonId, tempLessonData.file);
+    if (tempLessonData.file) {
+      lessonFiles.set(lessonId, tempLessonData.file);
+    }
     
     // Create the new lesson
     const newLesson: Lesson = {
       id: lessonId,
       name: tempLessonData.name,
-      fileName: tempLessonData.file.name,
+      fileName: tempLessonData.file?.name || 'Untitled',
       material: {
-        name: tempLessonData.file.name,
-        size: tempLessonData.file.size,
-        type: tempLessonData.file.type,
-        content: tempLessonData.file.type === 'text/plain' ? '' : undefined
+        name: tempLessonData.file?.name || 'Untitled',
+        size: tempLessonData.file?.size || 0,
+        type: tempLessonData.file?.type || "application/octet-stream",
+        content: tempLessonData.description
       },
       chapters,
       questionnaire,
@@ -460,7 +507,8 @@ const Lessons = () => {
   if (viewMode === "create") {
     return (
       <LessonCreation
-        onComplete={handleCreateLesson}
+        onCompleteUpload={handleCreateLesson}
+        onCompleteText={handleCreateLessonFromText}
         onCancel={() => updateState({ viewMode: 'dashboard' as ViewMode })}
         isLoading={isLoading}
       />
@@ -468,10 +516,21 @@ const Lessons = () => {
   }
 
   if (viewMode === "questionnaire" && tempLessonData) {
+    // Topic-based flow: show general survey (no API)
+    if (tempLessonData.description && !tempLessonData.file) {
+      return (
+        <LessonSurvey
+          lessonName={tempLessonData.name}
+          onComplete={handleSurveyComplete}
+          onCancel={() => updateState({ viewMode: 'create' as ViewMode, tempLessonData: null })}
+        />
+      );
+    }
+
     return (
       <LessonQuestionnaire
         lessonName={tempLessonData.name}
-        file={tempLessonData.file}
+        file={tempLessonData.file as File}
         onComplete={handleQuestionnaireComplete}
         onCancel={() => updateState({ 
           viewMode: 'create' as ViewMode,
@@ -596,10 +655,15 @@ const Lessons = () => {
                     onClick={() => {
                       updateState({
                         viewMode: 'questionnaire' as ViewMode,
-                        tempLessonData: {
-                          name: currentLesson.name,
-                          file: new File([], currentLesson.fileName, { type: currentLesson.material.type })
-                        }
+                        tempLessonData: currentLesson.material.size > 0
+                          ? {
+                              name: currentLesson.name,
+                              file: new File([], currentLesson.fileName, { type: currentLesson.material.type })
+                            }
+                          : {
+                              name: currentLesson.name,
+                              description: currentLesson.material.content || ''
+                            }
                       });
                     }}
                   >

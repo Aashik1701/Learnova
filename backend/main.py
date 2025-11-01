@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 from typing import List, Dict, Any, Optional
+
 import os
 import json
 import tempfile
@@ -53,6 +54,16 @@ class StudySection(BaseModel):
 
 class StudyMaterialsResponse(BaseModel):
     sections: List[StudySection]
+
+# Text-based request models
+class TextQuestionnaireRequest(BaseModel):
+    lesson_name: str
+    description: str
+
+class TextStudyMaterialsRequest(BaseModel):
+    lesson_name: str
+    description: str
+    user_responses: List[UserResponse]
 
 app = FastAPI(
     title="Prince's FastAPI Backend",
@@ -140,6 +151,20 @@ async def generate_questionnaire_endpoint(
         print(f"✗ Unexpected error: {str(e)}")
         import traceback
         traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Failed to process request: {str(e)}")
+
+@app.post("/api/generate-questionnaire-text")
+async def generate_questionnaire_text(body: TextQuestionnaireRequest):
+    try:
+        lesson_name = body.lesson_name
+        lesson_content = body.description
+        if not lesson_content.strip():
+            raise HTTPException(status_code=400, detail="Description cannot be empty")
+        questions = generate_questionnaire(lesson_name, lesson_content)
+        return JSONResponse(content={"questions": questions})
+    except HTTPException:
+        raise
+    except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to process request: {str(e)}")
 
 @app.post("/api/generate-study-materials")

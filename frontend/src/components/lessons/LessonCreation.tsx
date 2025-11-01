@@ -5,19 +5,24 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Upload, Book, FileText, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 interface LessonCreationProps {
-  onComplete: (lessonName: string, file: File) => void;
+  onCompleteUpload: (lessonName: string, file: File) => void;
+  onCompleteText: (lessonName: string, description: string) => void;
   onCancel: () => void;
   isLoading?: boolean;
   existingLesson?: { name: string; fileName: string };
 }
 
-export const LessonCreation = ({ onComplete, onCancel, isLoading, existingLesson }: LessonCreationProps) => {
+export const LessonCreation = ({ onCompleteUpload, onCompleteText, onCancel, isLoading, existingLesson }: LessonCreationProps) => {
   const [lessonName, setLessonName] = useState(existingLesson?.name || "");
   const [file, setFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+  const [mode, setMode] = useState<"upload" | "text">("upload");
+  const [description, setDescription] = useState("");
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -64,16 +69,27 @@ export const LessonCreation = ({ onComplete, onCancel, isLoading, existingLesson
       return;
     }
 
-    if (!file) {
-      toast({
-        title: "Error",
-        description: "Please upload study materials.",
-        variant: "destructive",
-      });
-      return;
+    if (mode === "upload") {
+      if (!file) {
+        toast({
+          title: "Error",
+          description: "Please upload study materials.",
+          variant: "destructive",
+        });
+        return;
+      }
+      onCompleteUpload(lessonName, file);
+    } else {
+      if (!description.trim()) {
+        toast({
+          title: "Error",
+          description: "Please enter a brief description for the topic.",
+          variant: "destructive",
+        });
+        return;
+      }
+      onCompleteText(lessonName, description.trim());
     }
-
-    onComplete(lessonName, file);
   };
 
   const handleFileClick = () => {
@@ -90,7 +106,7 @@ export const LessonCreation = ({ onComplete, onCancel, isLoading, existingLesson
               {existingLesson ? "Edit Lesson" : "Create New Lesson"}
             </CardTitle>
             <CardDescription>
-              Upload your study materials and we'll generate a personalized learning experience.
+              Choose how you'd like to create your lesson.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -105,55 +121,73 @@ export const LessonCreation = ({ onComplete, onCancel, isLoading, existingLesson
                   disabled={isLoading}
                 />
               </div>
-              
-              <div className="space-y-2">
-                <Label>Upload Study Materials (PDF or Text)</Label>
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  onChange={handleFileUpload}
-                  accept=".pdf,.txt,application/pdf,text/plain"
-                  className="hidden"
-                  disabled={isLoading}
-                />
-                
-                <div 
-                  onClick={handleFileClick}
-                  className="flex flex-col items-center justify-center w-full h-40 border-2 border-dashed rounded-lg cursor-pointer bg-muted/50 hover:bg-muted transition-colors p-4 text-center"
-                >
-                  {file ? (
-                    <div className="flex flex-col items-center">
-                      <FileText className="w-10 h-10 text-primary mb-2" />
-                      <p className="font-medium text-foreground">{file.name}</p>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        {(file.size / 1024 / 1024).toFixed(2)} MB • {file.type}
-                      </p>
-                      <Button 
-                        type="button" 
-                        variant="ghost" 
-                        size="sm" 
-                        className="mt-2"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setFile(null);
-                        }}
-                      >
-                        Remove file
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="flex flex-col items-center">
-                      <Upload className="w-10 h-10 text-muted-foreground mb-2" />
-                      <p className="text-sm text-muted-foreground">
-                        <span className="font-medium text-foreground">Click to upload</span> or drag and drop
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        PDF or TXT (max 10MB)
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </div>
+
+              <Tabs value={mode} onValueChange={(v) => setMode(v as any)}>
+                <TabsList className="grid grid-cols-2 w-full">
+                  <TabsTrigger value="upload">From PDF/Text</TabsTrigger>
+                  <TabsTrigger value="text">From Topic</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="upload" className="space-y-2 mt-4">
+                  <Label>Upload Study Materials (PDF or Text)</Label>
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleFileUpload}
+                    accept=".pdf,.txt,application/pdf,text/plain"
+                    className="hidden"
+                    disabled={isLoading}
+                  />
+                  
+                  <div 
+                    onClick={handleFileClick}
+                    className="flex flex-col items-center justify-center w-full h-40 border-2 border-dashed rounded-lg cursor-pointer bg-muted/50 hover:bg-muted transition-colors p-4 text-center"
+                  >
+                    {file ? (
+                      <div className="flex flex-col items-center">
+                        <FileText className="w-10 h-10 text-primary mb-2" />
+                        <p className="font-medium text-foreground">{file.name}</p>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          {(file.size / 1024 / 1024).toFixed(2)} MB • {file.type}
+                        </p>
+                        <Button 
+                          type="button" 
+                          variant="ghost" 
+                          size="sm" 
+                          className="mt-2"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setFile(null);
+                          }}
+                        >
+                          Remove file
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center">
+                        <Upload className="w-10 h-10 text-muted-foreground mb-2" />
+                        <p className="text-sm text-muted-foreground">
+                          <span className="font-medium text-foreground">Click to upload</span> or drag and drop
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          PDF or TXT (max 10MB)
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="text" className="space-y-2 mt-4">
+                  <Label>Topic Description</Label>
+                  <Textarea
+                    placeholder="Briefly describe the topic you want to study..."
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    rows={6}
+                    disabled={isLoading}
+                  />
+                </TabsContent>
+              </Tabs>
 
               <div className="flex justify-end gap-2 pt-4">
                 <Button 
@@ -166,7 +200,11 @@ export const LessonCreation = ({ onComplete, onCancel, isLoading, existingLesson
                 </Button>
                 <Button 
                   type="submit" 
-                  disabled={!lessonName.trim() || !file || isLoading}
+                  disabled={
+                    !lessonName.trim() || 
+                    (mode === 'upload' ? !file : !description.trim()) || 
+                    isLoading
+                  }
                 >
                   {isLoading ? (
                     <>
