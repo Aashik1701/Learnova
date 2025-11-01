@@ -8,7 +8,6 @@ import Auth from "./pages/Auth";
 import DashboardNew from "./pages/DashboardNew";
 import Lessons from "./pages/Lessons";
 import PracticeNew from "./pages/PracticeNew";
-import Peers from "./pages/Peers";
 import Passports from "./pages/Passports";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
@@ -28,7 +27,6 @@ const App = () => (
           <Route path="/dashboard" element={<DashboardNew />} />
           <Route path="/lessons" element={<Lessons />} />
           <Route path="/practice" element={<PracticeNew />} />
-          <Route path="/peers" element={<Peers />} />
           <Route path="/passports" element={<Passports />} />
           <Route path="/profile" element={<Profile />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
