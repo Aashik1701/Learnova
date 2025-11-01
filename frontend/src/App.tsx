@@ -11,6 +11,7 @@ import PracticeNew from "./pages/PracticeNew";
 import Peers from "./pages/Peers";
 import Passports from "./pages/Passports";
 import Profile from "./pages/Profile";
+import Verify from "./pages/Verify";
 import NotFound from "./pages/NotFound";
 import "./lib/i18n";
 
@@ -31,6 +32,7 @@ const App = () => (
           <Route path="/peers" element={<Peers />} />
           <Route path="/passports" element={<Passports />} />
           <Route path="/profile" element={<Profile />} />
+          <Route path="/verify" element={<Verify />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

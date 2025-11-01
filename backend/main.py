@@ -11,6 +11,14 @@ from dotenv import load_dotenv
 from app.services.gemini_service import generate_questionnaire, generate_study_materials
 from app.utils.pdf_utils import extract_text_from_pdf
 
+# Import certificate pipeline lazily to avoid errors if dependencies are missing
+try:
+    from app.services.certificate_pipeline import CertificatePipeline
+    CERTIFICATE_PIPELINE_AVAILABLE = True
+except ImportError as e:
+    CERTIFICATE_PIPELINE_AVAILABLE = False
+    print(f"Warning: Certificate pipeline not available. Install dependencies: {e}")
+
 # Load environment variables
 load_dotenv()
 
@@ -261,6 +269,158 @@ async def generate_study_materials_endpoint(
 @app.get("/api/hello")
 async def hello():
     return {"message": "Hello from FastAPI!"}
+
+# Certificate endpoints
+class IssueCertificateRequest(BaseModel):
+    userId: str = Field(..., alias='userId')
+    courseId: str = Field(..., alias='courseId')
+    grade: str
+    courseName: Optional[str] = None
+    learnerName: Optional[str] = None
+    durationHours: float = Field(default=0.0, alias='durationHours')
+    modules: int = Field(default=0)
+    metadata: Optional[Dict[str, Any]] = None
+    ownerAddress: Optional[str] = Field(default=None, alias='ownerAddress')
+    
+    class Config:
+        populate_by_name = True
+
+@app.post("/internal/issue-certificate")
+async def issue_certificate_endpoint(request: IssueCertificateRequest):
+    """
+    Internal endpoint for issuing certificates.
+    Called by course completion worker/event handler.
+    """
+    try:
+        if not CERTIFICATE_PIPELINE_AVAILABLE:
+            raise HTTPException(
+                status_code=503,
+                detail="Certificate service not available. Please install dependencies: pip install -r requirements.txt"
+            )
+        try:
+            pipeline = CertificatePipeline()
+        except Exception as init_error:
+            raise HTTPException(
+                status_code=503,
+                detail=f"Certificate service not configured. Please configure environment variables. Error: {str(init_error)}"
+            )
+        
+        # Get user and course info (in production, fetch from database)
+        # For now, use defaults if not provided
+        learner_name = request.learnerName or "Learner"
+        course_name = request.courseName or "Course"
+        
+        # Check for existing certificate first (idempotency)
+        # If certificate already exists in DB, return it instead of creating new one
+        result = await pipeline.issue_certificate(
+            user_id=request.userId,
+            course_id=request.courseId,
+            course_name=course_name,
+            learner_name=learner_name,
+            grade=request.grade,
+            duration_hours=request.durationHours,
+            modules=request.modules,
+            metadata=request.metadata,
+            owner_address=request.ownerAddress
+        )
+        
+        # If already issued, treat as success
+        if result.get('status') == 'already_issued':
+            result['status'] = 'success'
+        
+        if result.get('status') == 'success':
+            return JSONResponse(
+                status_code=200,
+                content=result
+            )
+        elif result.get('status') == 'already_issued':
+            return JSONResponse(
+                status_code=200,
+                content=result
+            )
+        else:
+            return JSONResponse(
+                status_code=500,
+                content=result
+            )
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to issue certificate: {str(e)}"
+        )
+
+@app.get("/api/verify")
+async def verify_certificate_endpoint(certId: str):
+    """
+    Public endpoint for verifying certificates.
+    Returns verification status and details.
+    """
+    try:
+        if not CERTIFICATE_PIPELINE_AVAILABLE:
+            return JSONResponse(content={
+                "verified": False,
+                "status": "service_unavailable",
+                "message": "Verification service not available. Please install dependencies."
+            })
+        try:
+            pipeline = CertificatePipeline()
+        except Exception as init_error:
+            return JSONResponse(content={
+                "verified": False,
+                "status": "service_unavailable",
+                "message": f"Verification service not configured. Error: {str(init_error)}"
+            })
+        
+        result = await pipeline.verify_certificate(certId)
+        
+        return JSONResponse(content=result)
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JSONResponse(content={
+            "verified": False,
+            "status": "error",
+            "message": str(e)
+        })
+
+@app.post("/internal/revoke-certificate")
+async def revoke_certificate_endpoint(certId: str, reason: Optional[str] = None):
+    """
+    Internal endpoint for revoking certificates.
+    Marks certificate as revoked in database.
+    """
+    try:
+        from app.services.db_service import DatabaseService
+        db = DatabaseService()
+        
+        success = await db.revoke_certificate(certId, reason)
+        
+        if success:
+            return JSONResponse(content={
+                "status": "success",
+                "message": f"Certificate {certId} revoked"
+            })
+        else:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Certificate {certId} not found"
+            )
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to revoke certificate: {str(e)}"
+        )
 
 # Global error handler
 @app.exception_handler(Exception)

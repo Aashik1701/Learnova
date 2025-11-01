@@ -63,6 +63,15 @@ export interface Lesson {
   progress: number;
   createdAt: string;
   updatedAt: string;
+  certificate?: {
+    cert_id: string;
+    verify_url?: string;
+    proof_url?: string;
+    tx_hash?: string;
+    cid_doc?: string;
+    gateway_url?: string;
+    issued_on?: string;
+  } | null;
 }
 
 type ViewMode = "dashboard" | "create" | "questionnaire" | "learning" | "scoreCard";

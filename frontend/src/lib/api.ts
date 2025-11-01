@@ -151,3 +151,64 @@ export const generateStudyMaterialsFromText = async (
     throw error;
   }
 };
+
+// Certificate issuance API
+export interface IssueCertificateRequest {
+  userId: string;
+  courseId: string;
+  grade: string;
+  courseName?: string;
+  learnerName?: string;
+  durationHours?: number;
+  modules?: number;
+  metadata?: Record<string, any>;
+  ownerAddress?: string;
+}
+
+export interface CertificateResponse {
+  status: string;
+  cert_id?: string;
+  cid_doc?: string;
+  cid_proof?: string;
+  tx_hash?: string;
+  gateway_url?: string;  // IPFS gateway URL for direct access
+  verify_url?: string;
+  proof_url?: string;
+  issued_on?: string;
+  error?: string;
+}
+
+export const issueCertificate = async (
+  request: IssueCertificateRequest
+): Promise<CertificateResponse> => {
+  try {
+    const backendUrl = import.meta.env.VITE_BASE_URL || import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
+    const response = await fetch(`${backendUrl}/internal/issue-certificate`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        userId: request.userId,
+        courseId: request.courseId,
+        grade: request.grade,
+        courseName: request.courseName,
+        learnerName: request.learnerName,
+        durationHours: request.durationHours || 0,
+        modules: request.modules || 0,
+        metadata: request.metadata,
+        ownerAddress: request.ownerAddress,
+      }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(
+        error.detail || error.message || "Failed to issue certificate"
+      );
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Error issuing certificate:", error);
+    throw error;
+  }
+};
