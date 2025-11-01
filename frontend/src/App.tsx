@@ -11,8 +11,9 @@ import Lessons from "./pages/Lessons";
 import PracticeNew from "./pages/PracticeNew";
 import Passports from "./pages/Passports";
 import Profile from "./pages/Profile";
-import Verify from "./pages/Verify";
 import NotFound from "./pages/NotFound";
+import Verify from "./pages/Verify";
+import QuizProctor from "./pages/QuizProctor";
 import "./lib/i18n";
 
 const queryClient = new QueryClient();
@@ -30,6 +31,7 @@ const App = () => (
           <Route path="/dashboard" element={<DashboardNew />} />
           <Route path="/lessons" element={<Lessons />} />
           <Route path="/practice" element={<PracticeNew />} />
+          <Route path="/quiz-proctor" element={<QuizProctor />} />
           <Route path="/passports" element={<Passports />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/verify" element={<Verify />} />

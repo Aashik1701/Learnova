@@ -10,6 +10,7 @@ import tempfile
 from dotenv import load_dotenv
 from app.services.gemini_service import generate_questionnaire, generate_study_materials
 from app.utils.pdf_utils import extract_text_from_pdf
+from app.routes import proctor
 
 # Import certificate pipeline lazily to avoid errors if dependencies are missing
 try:
@@ -87,6 +88,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Include routers
+app.include_router(proctor.router)
 
 # Health check endpoint
 @app.get("/")
