@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { Brain, Globe, Users, Shield, Sparkles, ArrowRight, Crown } from "lucide-react";
+import ThemeToggle from "@/components/ThemeToggle";
 
 const Hero = () => {
   const navigate = useNavigate();
@@ -16,6 +17,7 @@ const Hero = () => {
           </span>
         </div>
         <div className="flex items-center gap-4">
+          <ThemeToggle />
           <Button variant="outline" className="gap-2" onClick={() => navigate("/premium")}>
             <Crown className="h-4 w-4 text-amber-500" /> Buy Premium
           </Button>

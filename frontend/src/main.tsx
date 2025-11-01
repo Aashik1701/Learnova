@@ -25,5 +25,18 @@ window.addEventListener("unhandledrejection", (event) => {
     return false;
   }
 });
+// Initialize theme early to avoid flash of wrong theme
+(() => {
+  try {
+    const stored = localStorage.getItem("theme");
+    const prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+    const isDark = stored ? stored === "dark" : prefersDark;
+    if (isDark) {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
+  } catch {}
+})();
 
 createRoot(document.getElementById("root")!).render(<App />);
