@@ -6,9 +6,11 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Hero from "./pages/Hero";
 import Premium from "./pages/Premium";
 import Auth from "./pages/Auth";
-import DashboardNew from "./pages/DashboardNew";
 import StudentDashboard from "./pages/StudentDashboard";
 import TeacherDashboard from "./pages/TeacherDashboard";
+import ClassStudents from "./pages/ClassStudents";
+import TeacherStudentMarks from "./pages/TeacherStudentMarks";
+import TeacherStudentQuizAnalysis from "./pages/TeacherStudentQuizAnalysis";
 import Lessons from "./pages/Lessons";
 import PracticeNew from "./pages/PracticeNew";
 import Passports from "./pages/Passports";
@@ -17,6 +19,8 @@ import NotFound from "./pages/NotFound";
 import Verify from "./pages/Verify";
 import QuizProctor from "./pages/QuizProctor";
 import "./lib/i18n";
+import Dashboard from "./pages/";
+import DashboardNew from "./pages/DashboardNew";
 
 const queryClient = new QueryClient();
 
@@ -30,9 +34,12 @@ const App = () => (
           <Route path="/" element={<Hero />} />
           <Route path="/premium" element={<Premium />} />
           <Route path="/auth" element={<Auth />} />
-          <Route path="/dashboard" element={<DashboardNew />} />
           <Route path="/dashboard/student" element={<StudentDashboard />} />
           <Route path="/dashboard/teacher" element={<TeacherDashboard />} />
+          <Route path="/teacher/class/:id" element={<ClassStudents />} />
+          <Route path="/dashboard" element={<DashboardNew />} />
+          <Route path="/teacher/class/:id/student/:studentId" element={<TeacherStudentMarks />} />
+          <Route path="/teacher/class/:id/student/:studentId/quiz/:quizId" element={<TeacherStudentQuizAnalysis />} />
           <Route path="/lessons" element={<Lessons />} />
           <Route path="/practice" element={<PracticeNew />} />
           <Route path="/quiz-proctor" element={<QuizProctor />} />

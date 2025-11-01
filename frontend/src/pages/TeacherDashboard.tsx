@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Brain, Users, ClipboardList, Shield, Sparkles, Crown, BookOpen, GraduationCap } from "lucide-react";
+import { Brain, Users, ClipboardList, Shield, Sparkles, GraduationCap } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 
@@ -71,16 +71,15 @@ const TeacherDashboard = () => {
                   </CardHeader>
                   <CardContent className="space-y-4">
                     {HARDCODED_CLASSES.map((c) => (
-                      <div key={c.id} className="flex items-center justify-between p-4 border rounded-xl hover:bg-muted/40">
-                        <div>
-                          <p className="font-semibold">{c.name}</p>
-                          <p className="text-sm text-muted-foreground">{c.students} students • {c.assignments} active assignments</p>
+                      <button
+                        key={c.id}
+                        onClick={() => navigate(`/teacher/class/${c.id}`)}
+                        className="w-full text-left p-4 border rounded-xl hover:bg-muted/40 transition-colors"
+                      >
+                        <div className="flex items-center justify-between">
+                        {c.name}
                         </div>
-                        <div className="flex gap-2">
-                          <Button size="sm" variant="outline" onClick={() => navigate("/lessons")}>Materials</Button>
-                          <Button size="sm" onClick={() => navigate("/practice")}>Assessments</Button>
-                        </div>
-                      </div>
+                      </button>
                     ))}
                   </CardContent>
                 </Card>
@@ -93,39 +92,13 @@ const TeacherDashboard = () => {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="grid sm:grid-cols-2 gap-3">
-                    <Button variant="secondary" onClick={() => navigate("/lessons")}>Create Lesson</Button>
-                    <Button variant="secondary" onClick={() => navigate("/practice")}>Create Quiz</Button>
-                    <Button variant="secondary" onClick={() => navigate("/passports")}>Issue Certificate</Button>
-                    <Button variant="secondary" onClick={() => navigate("/profile")}>View Profile</Button>
+                    <Button variant="secondary" >Upload Note</Button>
+                    <Button variant="secondary" >Create Quiz</Button>
                   </CardContent>
                 </Card>
               </motion.div>
 
               <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 }}>
-                <Card className="rounded-xl shadow-lg">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <BookOpen className="h-5 w-5 text-primary" />
-                      Recent Submissions
-                    </CardTitle>
-                    <CardDescription>Latest student activities</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="p-4 border rounded-xl">
-                      <p className="font-medium">John D. submitted Algebra Quiz</p>
-                      <p className="text-sm text-muted-foreground">Score: 85% • 2h ago</p>
-                    </div>
-                    <div className="p-4 border rounded-xl">
-                      <p className="font-medium">Sara K. completed Biology Lesson</p>
-                      <p className="text-sm text-muted-foreground">Progress: 100% • 5h ago</p>
-                    </div>
-                    <div className="p-4 border rounded-xl">
-                      <p className="font-medium">Aisha P. submitted History Assignment</p>
-                      <p className="text-sm text-muted-foreground">Pending review</p>
-                    </div>
-                  </CardContent>
-                </Card>
-
                 <Card className="rounded-xl shadow-lg mt-6">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
