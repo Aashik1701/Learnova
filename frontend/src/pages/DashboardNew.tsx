@@ -10,6 +10,7 @@ import {
   Trophy, Zap, CheckCircle2, AlertCircle, Star, TrendingDown
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import UserMenu from "@/components/UserMenu";
 import { motion } from "framer-motion";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { Area, AreaChart, Bar, BarChart, Cell, Line, LineChart, Pie, PieChart, XAxis, YAxis, CartesianGrid, Legend } from "recharts";
@@ -168,7 +169,7 @@ const DashboardNew = () => {
             <Button variant="ghost" onClick={() => navigate("/dashboard")} className="rounded-xl font-semibold">Dashboard</Button>
             <Button variant="ghost" onClick={() => navigate("/lessons")} className="rounded-xl">Lessons</Button>
             <Button variant="ghost" onClick={() => navigate("/passports")} className="rounded-xl">Passports</Button>
-            <Button variant="outline" onClick={handleLogout} className="rounded-xl">Logout</Button>
+            <UserMenu onLogout={handleLogout} />
           </nav>
         </div>
       </header>

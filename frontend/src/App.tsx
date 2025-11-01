@@ -15,8 +15,10 @@ import Passports from "./pages/Passports";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 import Verify from "./pages/Verify";
+import Settings from "./pages/Settings";
 import QuizProctor from "./pages/QuizProctor";
 import "./lib/i18n";
+
 
 const queryClient = new QueryClient();
 
@@ -24,7 +26,6 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
-      <Sonner />
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Hero />} />
@@ -39,6 +40,7 @@ const App = () => (
           <Route path="/passports" element={<Passports />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/verify" element={<Verify />} />
+          <Route path="/settings" element={<Settings />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

@@ -23,6 +23,11 @@ const Profile = () => {
     full_name: '',
     email: '',
     bio: '',
+    avatar_url: '',
+    username: '',
+    phone: '',
+    location: '',
+    institution: '',
     preferred_language: 'en',
     proficiency_level: 'beginner',
     theme_preference: 'light',
@@ -34,42 +39,26 @@ const Profile = () => {
   }, []);
 
   const loadProfile = async () => {
+    // Hardcoded profile values as requested
+    const fixed = {
+      full_name: 'geethika',
+      email: 'geethika@gmail.com',
+      username: 'geethika',
+      bio: '',
+      avatar_url: localStorage.getItem('avatar_url') || '',
+      phone: '9189273829',
+      location: 'chennai',
+      institution: '',
+      preferred_language: 'en',
+      proficiency_level: 'beginner',
+      theme_preference: 'light',
+      accessibility_settings: {},
+    };
+    setProfile(fixed);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        navigate('/auth');
-        return;
-      }
-
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single();
-
-      if (error) throw error;
-
-      if (data) {
-        setProfile({
-          full_name: data.full_name || '',
-          email: user.email || '',
-          bio: data.bio || '',
-          preferred_language: data.preferred_language || 'en',
-          proficiency_level: data.proficiency_level || 'beginner',
-          theme_preference: data.theme_preference || 'light',
-          accessibility_settings: data.accessibility_settings || {},
-        });
-      }
-    } catch (error) {
-      console.error('Error loading profile:', error);
-      toast({
-        title: t('error'),
-        description: 'Failed to load profile',
-        variant: 'destructive',
-      });
-    } finally {
-      setLoading(false);
-    }
+      localStorage.setItem('learner_name', fixed.full_name);
+    } catch {}
+    setLoading(false);
   };
 
   const saveProfile = async () => {
@@ -83,6 +72,7 @@ const Profile = () => {
         .update({
           full_name: profile.full_name,
           bio: profile.bio,
+          avatar_url: profile.avatar_url,
           preferred_language: profile.preferred_language,
           proficiency_level: profile.proficiency_level,
           theme_preference: profile.theme_preference,
@@ -92,8 +82,14 @@ const Profile = () => {
 
       if (error) throw error;
 
-      // Apply theme
-      document.documentElement.classList.toggle('dark', profile.theme_preference === 'dark');
+      // Apply and persist theme & profile basics for UI header/avatar
+      const isDark = profile.theme_preference === 'dark';
+      document.documentElement.classList.toggle('dark', isDark);
+      try {
+        localStorage.setItem('theme', isDark ? 'dark' : 'light');
+        if (profile.full_name) localStorage.setItem('learner_name', profile.full_name);
+        if (profile.avatar_url) localStorage.setItem('avatar_url', profile.avatar_url);
+      } catch {}
 
       toast({
         title: t('success'),
@@ -193,9 +189,7 @@ const Profile = () => {
                       <Input
                         id="full_name"
                         value={profile.full_name}
-                        onChange={(e) =>
-                          setProfile({ ...profile, full_name: e.target.value })
-                        }
+                        disabled
                         placeholder={t('Enter your name')}
                       />
                     </div>
@@ -205,6 +199,16 @@ const Profile = () => {
                       <Input
                         id="email"
                         value={profile.email}
+                        disabled
+                        className="bg-muted"
+                      />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="username">{t('Username')}</Label>
+                      <Input
+                        id="username"
+                        value={profile.username}
                         disabled
                         className="bg-muted"
                       />
@@ -222,89 +226,26 @@ const Profile = () => {
                         rows={4}
                       />
                     </div>
-                  </div>
-                </Card>
-              </AccordionContent>
-            </AccordionItem>
 
-            <AccordionItem value="learning">
-              <AccordionTrigger className="text-lg font-semibold">
-                {t('Learning Preferences')}
-              </AccordionTrigger>
-              <AccordionContent>
-                <Card className="p-6">
-                  <div className="space-y-4">
-                    <div>
-                      <Label htmlFor="preferred_language">{t('Preferred Language')}</Label>
-                      <select
-                        id="preferred_language"
-                        value={profile.preferred_language}
-                        onChange={(e) =>
-                          setProfile({ ...profile, preferred_language: e.target.value })
-                        }
-                        className="w-full px-3 py-2 border rounded-md"
-                      >
-                        <option value="en">English</option>
-                        <option value="es">Spanish</option>
-                        <option value="hi">Hindi</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <Label htmlFor="proficiency_level">{t('Proficiency Level')}</Label>
-                      <select
-                        id="proficiency_level"
-                        value={profile.proficiency_level}
-                        onChange={(e) =>
-                          setProfile({ ...profile, proficiency_level: e.target.value })
-                        }
-                        className="w-full px-3 py-2 border rounded-md"
-                      >
-                        <option value="beginner">{t('Beginner')}</option>
-                        <option value="intermediate">{t('Intermediate')}</option>
-                        <option value="advanced">{t('Advanced')}</option>
-                      </select>
-                    </div>
-                  </div>
-                </Card>
-              </AccordionContent>
-            </AccordionItem>
-
-            <AccordionItem value="appearance">
-              <AccordionTrigger className="text-lg font-semibold">
-                {t('Appearance & Accessibility')}
-              </AccordionTrigger>
-              <AccordionContent>
-                <Card className="p-6">
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
+                    <div className="grid sm:grid-cols-3 gap-4">
                       <div>
-                        <Label>{t('Dark Mode')}</Label>
-                        <p className="text-sm text-muted-foreground">
-                          {t('Toggle between light and dark theme')}
-                        </p>
+                        <Label htmlFor="phone">{t('Phone')}</Label>
+                        <Input id="phone" value={profile.phone} onChange={(e)=>setProfile({...profile, phone: e.target.value})} />
                       </div>
-                      <div className="flex items-center gap-2">
-                        {profile.theme_preference === 'light' ? (
-                          <Sun className="h-4 w-4 text-muted-foreground" />
-                        ) : (
-                          <Moon className="h-4 w-4 text-muted-foreground" />
-                        )}
-                        <Switch
-                          checked={profile.theme_preference === 'dark'}
-                          onCheckedChange={(checked) =>
-                            setProfile({
-                              ...profile,
-                              theme_preference: checked ? 'dark' : 'light',
-                            })
-                          }
-                        />
+                      <div>
+                        <Label htmlFor="location">{t('Location')}</Label>
+                        <Input id="location" value={profile.location} onChange={(e)=>setProfile({...profile, location: e.target.value})} />
+                      </div>
+                      <div>
+                        <Label htmlFor="institution">{t('Institution')}</Label>
+                        <Input id="institution" value={profile.institution} onChange={(e)=>setProfile({...profile, institution: e.target.value})} />
                       </div>
                     </div>
                   </div>
                 </Card>
               </AccordionContent>
             </AccordionItem>
+            
           </Accordion>
 
           <div className="flex gap-4">
