@@ -3,14 +3,29 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Brain, BookOpen, Shield, TrendingUp, Award, Clock, Target, ArrowRight, Sparkles, Crown } from "lucide-react";
+import { Brain, BookOpen, Shield, TrendingUp, Award, Clock, Target, ArrowRight, Sparkles, Crown, CalendarClock, ListChecks, NotebookPen } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
+import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent } from "@/components/ui/chart";
+import { BarChart, Bar, CartesianGrid, XAxis, YAxis, PieChart, Pie, Cell, LineChart, Line } from "recharts";
 
 const HARDCODED_LESSONS = [
   { id: 1, title: "Intro to Algebra", subject: "Math", difficulty: "Beginner", progress: 85 },
   { id: 2, title: "Basics of Biology", subject: "Science", difficulty: "Beginner", progress: 60 },
   { id: 3, title: "World History Overview", subject: "History", difficulty: "Intermediate", progress: 45 },
+];
+
+const UPCOMING_ITEMS = [
+  { id: "u1", title: "Algebra Quiz 2", type: "Quiz", dueDate: "2025-09-25" },
+  { id: "u2", title: "Biology Assignment - Cells", type: "Assignment", dueDate: "2025-09-27" },
+  { id: "u3", title: "History Quiz - WW2", type: "Quiz", dueDate: "2025-09-30" },
+];
+
+const COMPLETED_QUIZZES = [
+  { id: "c1", title: "Algebra Basics", subject: "Math", score: 85, date: "2025-09-10" },
+  { id: "c2", title: "Linear Equations", subject: "Math", score: 78, date: "2025-09-15" },
+  { id: "c3", title: "Biology Fundamentals", subject: "Science", score: 92, date: "2025-09-18" },
+  { id: "c4", title: "World History - WW1", subject: "History", score: 66, date: "2025-09-20" },
 ];
 
 const HARDCODED_RECOMMENDATIONS = [
@@ -44,6 +59,8 @@ const StudentDashboard = () => {
   const [userName] = useState(() => localStorage.getItem("learner_name") || "Student");
   const [progress] = useState(HARDCODED_LESSONS);
   const [recommendations] = useState(HARDCODED_RECOMMENDATIONS);
+  const [upcoming] = useState(UPCOMING_ITEMS);
+  const [completed] = useState(COMPLETED_QUIZZES);
   
   useEffect(() => {
     const timer = setTimeout(() => setIsLoading(false), 400);
@@ -104,55 +121,162 @@ const StudentDashboard = () => {
               <StatCard icon={<Award className="h-6 w-6" />} title="Achievements" value="4" change="1 new" variant="warning" delay={0.3} />
             </div>
 
-            <div className="grid lg:grid-cols-3 gap-6 mb-8">
-              <motion.div className="lg:col-span-2" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.4 }}>
-                <Card className="rounded-xl shadow-lg border-primary/20">
-                  <CardHeader>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <CardTitle className="flex items-center gap-2">
-                          <Sparkles className="h-5 w-5 text-primary" />
-                          Recommended for You
-                        </CardTitle>
-                        <CardDescription>Based on your recent learning</CardDescription>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    {recommendations.map((rec, idx) => (
-                      <motion.div key={idx} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.5 + idx * 0.1 }}>
-                        <RecommendationCard recommendation={rec} onStart={() => navigate("/lessons")} />
-                      </motion.div>
-                    ))}
-                  </CardContent>
-                </Card>
-              </motion.div>
-
-              <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.5 }}>
-                <Card className="rounded-xl shadow-lg">
-                  <CardHeader>
-                    <CardTitle>Recent Activity</CardTitle>
-                    <CardDescription>Your recent lessons</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    {progress.map((p, idx) => (
-                      <motion.div key={p.id} className="space-y-2 cursor-pointer hover:opacity-80 transition-opacity" onClick={() => navigate("/lessons")} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.6 + idx * 0.05 }}>
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="font-medium truncate pr-2">{p.title}</span>
-                          <span className="text-muted-foreground flex-shrink-0">{p.progress}%</span>
+            <motion.div className="grid lg:grid-cols-3 gap-6 my-8" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.8 }}>
+              <Card className="rounded-xl shadow-lg lg:col-span-2">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2"><CalendarClock className="h-5 w-5 text-primary" /> Upcoming</CardTitle>
+                  <CardDescription>Quizzes and assignments assigned to you</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {upcoming.length === 0 ? (
+                    <p className="text-muted-foreground">No upcoming items.</p>
+                  ) : (
+                    upcoming.map((u) => (
+                      <div key={u.id} className="p-3 border rounded-xl flex items-center justify-between hover:bg-muted/40">
+                        <div>
+                          <div className="font-medium">{u.title}</div>
+                          <div className="text-xs text-muted-foreground">{u.type} • Due {u.dueDate}</div>
                         </div>
-                        <Progress value={p.progress} className="h-2" />
-                      </motion.div>
-                    ))}
-                  </CardContent>
-                </Card>
-              </motion.div>
-            </div>
+                        <Button size="sm" variant="outline" className="rounded-xl">View</Button>
+                      </div>
+                    ))
+                  )}
+                </CardContent>
+              </Card>
 
-            <motion.div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.7 }}>
-              <ActionCard icon={<BookOpen className="h-8 w-8" />} title="Continue Learning" description="Resume where you left off" onClick={() => navigate("/lessons")} />
-              <ActionCard icon={<Target className="h-8 w-8" />} title="Practice Quiz" description="Test your knowledge" onClick={() => navigate("/practice")} />
-              <ActionCard icon={<Shield className="h-8 w-8" />} title="Certificates" description="View your achievements" onClick={() => navigate("/passports")} />
+              <Card className="rounded-xl shadow-lg">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2"><NotebookPen className="h-5 w-5 text-primary" /> Notes</CardTitle>
+                  <CardDescription>Quick access</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <Button className="w-full rounded-xl" variant="secondary">View Notes</Button>
+                </CardContent>
+              </Card>
+            </motion.div>
+
+            <motion.div className="grid lg:grid-cols-3 gap-6 mb-8" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.9 }}>
+              <Card className="rounded-xl shadow-lg lg:col-span-2">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2"><ListChecks className="h-5 w-5 text-primary" /> Completed Quizzes</CardTitle>
+                  <CardDescription>Results and scores</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {completed.length === 0 ? (
+                    <p className="text-muted-foreground">No completed quizzes yet.</p>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead className="text-muted-foreground">
+                          <tr className="border-b">
+                            <th className="py-2 text-left font-medium">Quiz</th>
+                            <th className="py-2 text-left font-medium">Subject</th>
+                            <th className="py-2 text-left font-medium">Date</th>
+                            <th className="py-2 text-left font-medium">Score</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {completed.map((c) => (
+                            <tr key={c.id} className="border-b last:border-0">
+                              <td className="py-3">{c.title}</td>
+                              <td className="py-3">{c.subject}</td>
+                              <td className="py-3">{c.date}</td>
+                              <td className="py-3 font-semibold">{c.score}%</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              <Card className="rounded-xl shadow-lg">
+                <CardHeader>
+                  <CardTitle>Performance Overview</CardTitle>
+                  <CardDescription>Recent scores</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {completed.length === 0 ? (
+                    <p className="text-muted-foreground">No data to display.</p>
+                  ) : (
+                    <ChartContainer className="h-64" config={{ score: { label: "Score", color: "hsl(var(--primary))" } }}>
+                      <LineChart data={completed.map(c => ({ name: c.title, score: c.score }))} margin={{ left: 12, right: 12 }}>
+                        <CartesianGrid vertical={false} strokeDasharray="3 3" />
+                        <XAxis dataKey="name" tickLine={false} axisLine={false} interval={0} angle={-15} height={60} textAnchor="end" />
+                        <YAxis domain={[0, 100]} tickLine={false} axisLine={false} />
+                        <ChartTooltip content={<ChartTooltipContent hideIndicator nameKey="name" />} />
+                        <Line type="monotone" dataKey="score" stroke="var(--color-score)" strokeWidth={2} dot />
+                      </LineChart>
+                    </ChartContainer>
+                  )}
+                </CardContent>
+              </Card>
+            </motion.div>
+
+            <motion.div className="grid lg:grid-cols-3 gap-6" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 1.0 }}>
+              <Card className="rounded-xl shadow-lg">
+                <CardHeader>
+                  <CardTitle>Subject Mix</CardTitle>
+                  <CardDescription>Distribution of completed quizzes</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {completed.length === 0 ? (
+                    <p className="text-muted-foreground">No data to display.</p>
+                  ) : (
+                    (() => {
+                      const bySubject: Record<string, number> = {};
+                      completed.forEach(c => { bySubject[c.subject] = (bySubject[c.subject] || 0) + 1; });
+                      const data = Object.entries(bySubject).map(([name, value]) => ({ name, value }));
+                      const colors = ["#6366F1", "#22C55E", "#F59E0B", "#EF4444", "#06B6D4"]; // fallback palette
+                      return (
+                        <ChartContainer className="h-64" config={{ value: { label: "Count", color: "hsl(var(--primary))" } }}>
+                          <PieChart>
+                            <ChartTooltip content={<ChartTooltipContent hideIndicator nameKey="name" />} />
+                            <ChartLegend content={<ChartLegendContent />} />
+                            <Pie
+                              data={data}
+                              dataKey="value"
+                              nameKey="name"
+                              cx="50%"
+                              cy="50%"
+                              outerRadius={80}
+                              label={({ name, percent }) => `${name}: ${Math.round((percent || 0) * 100)}%`}
+                              labelLine={false}
+                            >
+                              {data.map((entry, index) => (
+                                <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />
+                              ))}
+                            </Pie>
+                          </PieChart>
+                        </ChartContainer>
+                      );
+                    })()
+                  )}
+                </CardContent>
+              </Card>
+
+              <Card className="rounded-xl shadow-lg lg:col-span-2">
+                <CardHeader>
+                  <CardTitle>Consistency</CardTitle>
+                  <CardDescription>Rolling performance trend</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {completed.length === 0 ? (
+                    <p className="text-muted-foreground">No data to display.</p>
+                  ) : (
+                    <ChartContainer className="h-64" config={{ score: { label: "Score", color: "hsl(var(--primary))" } }}>
+                      <BarChart data={completed.map(c => ({ name: c.title, score: c.score }))} margin={{ left: 12, right: 12 }}>
+                        <CartesianGrid vertical={false} strokeDasharray="3 3" />
+                        <XAxis dataKey="name" tickLine={false} axisLine={false} interval={0} angle={-15} height={60} textAnchor="end" />
+                        <YAxis domain={[0, 100]} tickLine={false} axisLine={false} />
+                        <ChartTooltip content={<ChartTooltipContent hideIndicator nameKey="name" />} />
+                        <Bar dataKey="score" fill="var(--color-score)" radius={[6,6,0,0]} />
+                      </BarChart>
+                    </ChartContainer>
+                  )}
+                </CardContent>
+              </Card>
             </motion.div>
           </>
         )}
