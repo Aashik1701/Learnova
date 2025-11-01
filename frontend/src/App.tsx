@@ -10,6 +10,7 @@ import Lessons from "./pages/Lessons";
 import PracticeNew from "./pages/PracticeNew";
 import Passports from "./pages/Passports";
 import Profile from "./pages/Profile";
+import QuizProctor from "./pages/QuizProctor";
 import NotFound from "./pages/NotFound";
 import "./lib/i18n";
 
@@ -27,6 +28,7 @@ const App = () => (
           <Route path="/dashboard" element={<DashboardNew />} />
           <Route path="/lessons" element={<Lessons />} />
           <Route path="/practice" element={<PracticeNew />} />
+          <Route path="/quiz-proctor" element={<QuizProctor />} />
           <Route path="/passports" element={<Passports />} />
           <Route path="/profile" element={<Profile />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
