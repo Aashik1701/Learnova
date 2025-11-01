@@ -230,10 +230,21 @@ const StudentDashboard = () => {
                       const data = Object.entries(bySubject).map(([name, value]) => ({ name, value }));
                       const colors = ["#6366F1", "#22C55E", "#F59E0B", "#EF4444", "#06B6D4"]; // fallback palette
                       return (
-                        <ChartContainer className="h-64 w-full" config={{ value: { label: "Count", color: "hsl(var(--primary))" } }}>
+                        <ChartContainer className="h-64 w-full" config={{ value: { label: "Quizzes", color: "hsl(var(--primary))" } }}>
                           <PieChart>
                             <ChartTooltip content={<ChartTooltipContent hideIndicator nameKey="name" />} />
-                            <ChartLegend content={<ChartLegendContent />} />
+                            <ChartLegend
+                              content={({ payload }) => (
+                                <ul className="flex flex-wrap gap-3 text-sm">
+                                  {payload?.map((entry: any) => (
+                                    <li key={entry.value} className="flex items-center gap-2">
+                                      <span className="inline-block h-3 w-3 rounded" style={{ backgroundColor: entry.color }} />
+                                      <span>{entry.payload?.name}: <span className="font-medium">{entry.payload?.value}</span></span>
+                                    </li>
+                                  ))}
+                                </ul>
+                              )}
+                            />
                             <Pie
                               data={data}
                               dataKey="value"
