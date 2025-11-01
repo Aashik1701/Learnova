@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Brain, ArrowLeft, BookOpen, Trophy, Lock, CheckCircle2 } from "lucide-react";
+import { Brain, ArrowLeft, BookOpen, Trophy, Lock, CheckCircle2, Download, Award, Sparkles } from "lucide-react";
 import { Subject } from "@/pages/Practice";
 import { generateChapters } from "@/lib/practice-generator";
 import { LessonViewer } from "./LessonViewer";
@@ -11,6 +11,8 @@ import { issueCertificate, CertificateResponse } from "@/lib/api";
 import { CertificateSection } from "@/components/CertificateSection";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface SubjectLearningProps {
   subject: Subject;
@@ -27,6 +29,7 @@ export const SubjectLearning = ({ subject, onUpdate, onBack }: SubjectLearningPr
     subject.certificate || null
   );
   const [issuingCertificate, setIssuingCertificate] = useState(false);
+  const [showCertificate, setShowCertificate] = useState(false);
   const { toast } = useToast();
 
   // Load certificate from subject on mount
@@ -41,6 +44,7 @@ export const SubjectLearning = ({ subject, onUpdate, onBack }: SubjectLearningPr
       const chapters = generateChapters(subject.questionnaireAnswers!);
       onUpdate({ ...subject, chapters });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleStartChapter = (index: number) => {
@@ -80,6 +84,11 @@ export const SubjectLearning = ({ subject, onUpdate, onBack }: SubjectLearningPr
     const progress = (completedChapters.length / subject.chapters!.length) * 100;
     if (progress >= 100 && !certificate && !updatedSubject.certificate) {
       await handleSubjectCompletion(updatedSubject);
+    }
+    
+    // Show certificate modal if completed
+    if (progress >= 100) {
+      setShowCertificate(true);
     }
   };
 
@@ -169,6 +178,9 @@ export const SubjectLearning = ({ subject, onUpdate, onBack }: SubjectLearningPr
           console.error("Failed to save certificate to localStorage:", error);
         }
         
+        // Show certificate modal
+        setShowCertificate(true);
+        
         toast({
           title: "🎓 Certificate Generated!",
           description: "Your certificate has been created and uploaded to IPFS",
@@ -188,6 +200,16 @@ export const SubjectLearning = ({ subject, onUpdate, onBack }: SubjectLearningPr
     }
   };
 
+  const progress = (subject.completedChapters.length / subject.chapters.length) * 100;
+  const isCompleted = subject.completedChapters.length === subject.chapters.length;
+
+  // Show certificate modal when subject is completed
+  useEffect(() => {
+    if (isCompleted && (certificate || subject.certificate) && !showCertificate) {
+      setShowCertificate(true);
+    }
+  }, [isCompleted, certificate, subject.certificate, showCertificate]);
+
   if (!subject.chapters || subject.chapters.length === 0) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-background via-muted to-background flex items-center justify-center">
@@ -201,16 +223,6 @@ export const SubjectLearning = ({ subject, onUpdate, onBack }: SubjectLearningPr
     );
   }
 
-  if (viewMode === "lesson") {
-    return (
-      <LessonViewer
-        chapter={subject.chapters[selectedChapterIndex]}
-        onComplete={handleLessonComplete}
-        onBack={() => setViewMode("chapters")}
-      />
-    );
-  }
-
   if (viewMode === "quiz") {
     return (
       <QuizView
@@ -221,7 +233,38 @@ export const SubjectLearning = ({ subject, onUpdate, onBack }: SubjectLearningPr
     );
   }
 
-  const progress = (subject.completedChapters.length / subject.chapters.length) * 100;
+  const handleDownloadCertificate = () => {
+    // Mock certificate download
+    const certificateData = {
+      subject: subject.name,
+      completedChapters: subject.completedChapters.length,
+      totalChapters: subject.chapters.length,
+      completionDate: new Date().toLocaleDateString(),
+      score: Math.round(subject.chapters.reduce((acc, ch) => acc + (ch.score || 0), 0) / subject.chapters.length)
+    };
+    
+    // Create a simple certificate text
+    const certificateText = `
+LEARNOVA CERTIFICATE OF COMPLETION
+
+Subject: ${certificateData.subject}
+Completed: ${certificateData.completedChapters}/${certificateData.totalChapters} Chapters
+Average Score: ${certificateData.score}%
+Date: ${certificateData.completionDate}
+
+Congratulations on completing this learning journey!
+    `.trim();
+
+    const blob = new Blob([certificateText], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${subject.name.replace(/\s+/g, '_')}_Certificate.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-muted to-background">
@@ -338,6 +381,110 @@ export const SubjectLearning = ({ subject, onUpdate, onBack }: SubjectLearningPr
           />
         )}
       </main>
+
+      {/* Certificate Modal */}
+      <AnimatePresence>
+        {showCertificate && (
+          <Dialog open={showCertificate} onOpenChange={setShowCertificate}>
+            <DialogContent className="max-w-2xl">
+              <motion.div
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.8, opacity: 0 }}
+                transition={{ type: "spring", stiffness: 300, damping: 30 }}
+              >
+                <DialogHeader>
+                  <DialogTitle className="text-center text-2xl font-bold flex items-center justify-center gap-2">
+                    <Sparkles className="h-6 w-6 text-yellow-500" />
+                    Certificate Earned!
+                    <Sparkles className="h-6 w-6 text-yellow-500" />
+                  </DialogTitle>
+                </DialogHeader>
+                
+                <motion.div 
+                  className="relative"
+                  initial={{ y: 20, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ delay: 0.2 }}
+                >
+                  {/* Certificate Design */}
+                  <div className="bg-gradient-to-br from-yellow-50 via-white to-blue-50 border-4 border-yellow-200 rounded-xl p-8 shadow-2xl">
+                    <div className="text-center space-y-6">
+                      {/* Header */}
+                      <motion.div
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        transition={{ delay: 0.4, type: "spring", stiffness: 200 }}
+                      >
+                        <Award className="h-16 w-16 text-yellow-500 mx-auto mb-4" />
+                        <h2 className="text-3xl font-bold bg-gradient-to-r from-yellow-600 via-orange-500 to-red-500 bg-clip-text text-transparent">
+                          Certificate of Completion
+                        </h2>
+                      </motion.div>
+
+                      {/* Content */}
+                      <motion.div 
+                        className="space-y-4"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ delay: 0.6 }}
+                      >
+                        <div className="text-xl font-semibold text-gray-800">
+                          {subject.name}
+                        </div>
+                        <div className="text-lg text-gray-600">
+                          Completed {subject.completedChapters.length} of {subject.chapters.length} Chapters
+                        </div>
+                        <div className="text-md text-gray-500">
+                          Average Score: {Math.round(subject.chapters.reduce((acc, ch) => acc + (ch.score || 0), 0) / subject.chapters.length)}%
+                        </div>
+                        <div className="text-sm text-gray-400">
+                          Issued on {new Date().toLocaleDateString()}
+                        </div>
+                      </motion.div>
+
+                      {/* Decorative elements */}
+                      <motion.div 
+                        className="flex justify-center items-center gap-4 text-yellow-400"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ delay: 0.8 }}
+                      >
+                        <Trophy className="h-8 w-8" />
+                        <Sparkles className="h-6 w-6" />
+                        <Trophy className="h-8 w-8" />
+                      </motion.div>
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <motion.div 
+                    className="flex gap-3 mt-6"
+                    initial={{ y: 20, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ delay: 1 }}
+                  >
+                    <Button 
+                      onClick={handleDownloadCertificate}
+                      className="flex-1 gap-2 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700"
+                    >
+                      <Download className="h-4 w-4" />
+                      Download Certificate
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      onClick={() => setShowCertificate(false)}
+                      className="flex-1"
+                    >
+                      Continue Learning
+                    </Button>
+                  </motion.div>
+                </motion.div>
+              </motion.div>
+            </DialogContent>
+          </Dialog>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

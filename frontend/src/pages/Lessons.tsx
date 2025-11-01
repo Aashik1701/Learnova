@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Brain, ArrowLeft, Plus, BookOpen, Trash2, Edit, PlayCircle, FileText, CheckCircle2, Loader2 } from "lucide-react";
+import { Brain, ArrowLeft, Plus, BookOpen, Trash2, Edit, PlayCircle, FileText, CheckCircle2, Loader2, Crown } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
@@ -196,17 +196,59 @@ const Lessons = () => {
   const handleCreateLesson = async (name: string, file: File) => {
     updateState({ isLoading: true });
     try {
-      // Read the file content as text if it's a text file
-      let fileContent = '';
-      if (file.type === 'text/plain') {
-        fileContent = await file.text();
+      // Prepare default preferences to generate chapters without quiz
+      const defaultSurvey = {
+        proficiency: 'beginner',
+        interest: 'high',
+        goal: 'career',
+        timeCommitment: 'medium',
+        learningStyle: 'visual',
+      } as any;
+
+      // Generate chapters directly
+      const chapters = generateChapters(name, defaultSurvey);
+
+      // Create a new lesson id and persist the original file in memory
+      const lessonId = Date.now().toString();
+      lessonFiles.set(lessonId, file);
+
+      // Create lesson object
+      const newLesson: Lesson = {
+        id: lessonId,
+        name,
+        fileName: file.name,
+        material: {
+          name: file.name,
+          size: file.size,
+          type: file.type || 'application/octet-stream',
+        },
+        chapters,
+        questionnaire: { answers: [], score: 0, completed: true },
+        progress: 0,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      // Persist lessons
+      const updatedLessons = [...lessons, newLesson];
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedLessons));
+      } catch (e) {
+        console.error('Failed to save lessons to localStorage:', e);
       }
-      
-      // Set the temporary lesson data and switch to questionnaire view
-      updateState({ 
-        tempLessonData: { name, file },
-        viewMode: 'questionnaire' as ViewMode,
-        isLoading: false
+
+      // Update state to jump straight into learning
+      updateState({
+        lessons: updatedLessons,
+        tempLessonData: null,
+        currentLesson: newLesson,
+        viewMode: 'learning' as ViewMode,
+        isLoading: false,
+      });
+
+      toast({
+        title: 'Lesson created!',
+        description: `${chapters.length} chapters have been generated from your PDF.`,
       });
     } catch (error) {
       console.error("Error processing file:", error);
@@ -442,7 +484,7 @@ const Lessons = () => {
                     <div className="space-y-1">
                       <CardTitle className="text-lg flex items-center gap-2">
                         {lesson.name}
-                        {questionnaireData.completed && (
+                        {questionnaireData.completed && (questionnaireData.answers?.length ?? 0) > 0 && (
                           <Badge variant="outline" className="border-green-200 bg-green-50 text-green-700">
                             <CheckCircle2 className="h-3 w-3 mr-1" /> Quiz: {questionnaireData.score}%
                           </Badge>
@@ -813,10 +855,15 @@ const Lessons = () => {
               </span>
             </div>
           </div>
-          <Button onClick={() => updateState({ viewMode: 'create' as ViewMode })} size="lg" className="gap-2">
-            <Plus className="h-5 w-5" />
-            Create Lesson
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" className="gap-2" onClick={() => navigate("/premium")}>
+              <Crown className="h-4 w-4 text-amber-500" /> Buy Premium
+            </Button>
+            <Button onClick={() => updateState({ viewMode: 'create' as ViewMode })} size="lg" className="gap-2">
+              <Plus className="h-5 w-5" />
+              Create Lesson
+            </Button>
+          </div>
         </div>
       </header>
 
