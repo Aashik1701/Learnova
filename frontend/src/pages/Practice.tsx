@@ -16,6 +16,15 @@ export interface Subject {
   chapters?: Chapter[];
   currentChapter: number;
   completedChapters: number[];
+  certificate?: {
+    cert_id: string;
+    verify_url?: string;
+    proof_url?: string;
+    tx_hash?: string;
+    cid_doc?: string;
+    gateway_url?: string;
+    issued_on?: string;
+  } | null;
 }
 
 export interface QuestionnaireAnswers {

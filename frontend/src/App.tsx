@@ -11,7 +11,6 @@ import Lessons from "./pages/Lessons";
 import PracticeNew from "./pages/PracticeNew";
 import Passports from "./pages/Passports";
 import Profile from "./pages/Profile";
-import QuizProctor from "./pages/QuizProctor";
 import NotFound from "./pages/NotFound";
 import "./lib/i18n";
 
@@ -33,6 +32,7 @@ const App = () => (
           <Route path="/quiz-proctor" element={<QuizProctor />} />
           <Route path="/passports" element={<Passports />} />
           <Route path="/profile" element={<Profile />} />
+          <Route path="/verify" element={<Verify />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

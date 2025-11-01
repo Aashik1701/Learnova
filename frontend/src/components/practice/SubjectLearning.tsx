@@ -7,6 +7,10 @@ import { generateChapters } from "@/lib/practice-generator";
 import { LessonViewer } from "./LessonViewer";
 import { QuizView } from "./QuizView";
 import { Progress } from "@/components/ui/progress";
+import { issueCertificate, CertificateResponse } from "@/lib/api";
+import { CertificateSection } from "@/components/CertificateSection";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -21,7 +25,19 @@ type ViewMode = "chapters" | "lesson" | "quiz";
 export const SubjectLearning = ({ subject, onUpdate, onBack }: SubjectLearningProps) => {
   const [viewMode, setViewMode] = useState<ViewMode>("chapters");
   const [selectedChapterIndex, setSelectedChapterIndex] = useState<number>(0);
+  const [certificate, setCertificate] = useState<CertificateResponse | null>(
+    subject.certificate || null
+  );
+  const [issuingCertificate, setIssuingCertificate] = useState(false);
   const [showCertificate, setShowCertificate] = useState(false);
+  const { toast } = useToast();
+
+  // Load certificate from subject on mount
+  useEffect(() => {
+    if (subject.certificate) {
+      setCertificate(subject.certificate as CertificateResponse);
+    }
+  }, [subject.certificate]);
 
   useEffect(() => {
     if (!subject.chapters || subject.chapters.length === 0) {
@@ -40,7 +56,7 @@ export const SubjectLearning = ({ subject, onUpdate, onBack }: SubjectLearningPr
     setViewMode("quiz");
   };
 
-  const handleQuizComplete = (score: number) => {
+  const handleQuizComplete = async (score: number) => {
     const passed = score >= 60;
     const updatedChapters = subject.chapters!.map((ch, idx) => 
       idx === selectedChapterIndex 
@@ -54,14 +70,134 @@ export const SubjectLearning = ({ subject, onUpdate, onBack }: SubjectLearningPr
 
     const currentChapter = passed ? Math.min(selectedChapterIndex + 1, subject.chapters!.length - 1) : selectedChapterIndex;
 
-    onUpdate({
+    const updatedSubject = {
       ...subject,
       chapters: updatedChapters,
       completedChapters,
       currentChapter,
-    });
+    };
 
+    onUpdate(updatedSubject);
     setViewMode("chapters");
+
+    // Check if subject is 100% complete and issue certificate (only if not already issued)
+    const progress = (completedChapters.length / subject.chapters!.length) * 100;
+    if (progress >= 100 && !certificate && !updatedSubject.certificate) {
+      await handleSubjectCompletion(updatedSubject);
+    }
+    
+    // Show certificate modal if completed
+    if (progress >= 100) {
+      setShowCertificate(true);
+    }
+  };
+
+  const handleSubjectCompletion = async (completedSubject: Subject) => {
+    try {
+      setIssuingCertificate(true);
+      
+      // Check if certificate already exists for this subject (check localStorage first)
+      if (completedSubject.certificate) {
+        console.log("Certificate already exists in subject data");
+        setCertificate(completedSubject.certificate as CertificateResponse);
+        return;
+      }
+
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast({
+          title: "Authentication required",
+          description: "Please log in to receive your certificate",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Get user profile for name
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('full_name')
+        .eq('id', user.id)
+        .single();
+
+      // Calculate grade based on scores
+      const scores = completedSubject.chapters!
+        .filter(ch => ch.completed && ch.score !== null && ch.score !== undefined)
+        .map(ch => ch.score!);
+      const averageScore = scores.length > 0
+        ? scores.reduce((a, b) => a + b, 0) / scores.length
+        : 0;
+      const grade = averageScore >= 90 ? "Distinction" : averageScore >= 70 ? "Pass" : "Pass";
+
+      // Estimate duration
+      const durationHours = completedSubject.chapters!.length * 1;
+
+      // Generate a unique course ID for the subject
+      const courseId = `subject-${completedSubject.name.toLowerCase().replace(/\s+/g, '-')}-${Date.now()}`;
+
+      // Issue certificate
+      const result = await issueCertificate({
+        userId: user.id,
+        courseId: courseId,
+        courseName: completedSubject.name,
+        learnerName: profile?.full_name || user.email || "Learner",
+        grade: grade,
+        durationHours: durationHours,
+        modules: completedSubject.chapters!.length,
+        metadata: {
+          type: "subject",
+          averageScore: averageScore.toFixed(1),
+          completedAt: new Date().toISOString(),
+        },
+      });
+
+      if (result.status === 'success' || result.status === 'already_issued') {
+        setCertificate(result);
+        
+        // Save certificate to subject and persist to localStorage
+        const updatedSubjectWithCert = {
+          ...completedSubject,
+          certificate: result
+        };
+        onUpdate(updatedSubjectWithCert);
+        
+        // Also save to localStorage directly
+        try {
+          const savedSubjects = localStorage.getItem("practice_subjects");
+          if (savedSubjects) {
+            const subjects = JSON.parse(savedSubjects);
+            const updatedSubjects = subjects.map((s: Subject) => 
+              s.id === completedSubject.id 
+                ? { ...s, certificate: result }
+                : s
+            );
+            localStorage.setItem("practice_subjects", JSON.stringify(updatedSubjects));
+          }
+        } catch (error) {
+          console.error("Failed to save certificate to localStorage:", error);
+        }
+        
+        // Show certificate modal
+        setShowCertificate(true);
+        
+        toast({
+          title: "🎓 Certificate Generated!",
+          description: "Your certificate has been created and uploaded to IPFS",
+        });
+      } else {
+        throw new Error(result.error || "Failed to issue certificate");
+      }
+    } catch (error: any) {
+      console.error("Error issuing certificate:", error);
+      toast({
+        title: "Certificate issuance failed",
+        description: error.message || "Could not issue certificate. You can retry later.",
+        variant: "destructive",
+      });
+    } finally {
+      setIssuingCertificate(false);
+    }
   };
 
   const progress = (subject.completedChapters.length / subject.chapters.length) * 100;
@@ -69,10 +205,10 @@ export const SubjectLearning = ({ subject, onUpdate, onBack }: SubjectLearningPr
 
   // Show certificate modal when subject is completed
   useEffect(() => {
-    if (isCompleted && !showCertificate) {
+    if (isCompleted && (certificate || subject.certificate) && !showCertificate) {
       setShowCertificate(true);
     }
-  }, [isCompleted, showCertificate]);
+  }, [isCompleted, certificate, subject.certificate, showCertificate]);
 
   if (!subject.chapters || subject.chapters.length === 0) {
     return (
@@ -96,16 +232,6 @@ export const SubjectLearning = ({ subject, onUpdate, onBack }: SubjectLearningPr
       />
     );
   }
-
-  const progress = (subject.completedChapters.length / subject.chapters.length) * 100;
-  const isCompleted = subject.completedChapters.length === subject.chapters.length;
-
-  // Show certificate modal when subject is completed
-  useEffect(() => {
-    if (isCompleted && !showCertificate) {
-      setShowCertificate(true);
-    }
-  }, [isCompleted, showCertificate]);
 
   const handleDownloadCertificate = () => {
     // Mock certificate download
@@ -245,6 +371,15 @@ Congratulations on completing this learning journey!
             );
           })}
         </div>
+
+        {/* Certificate Section - Shows when subject is complete and certificate exists */}
+        {progress >= 100 && (certificate || subject.certificate) && (
+          <CertificateSection
+            certificate={certificate || (subject.certificate as CertificateResponse)}
+            loading={issuingCertificate}
+            onRetry={() => !certificate && handleSubjectCompletion(subject)}
+          />
+        )}
       </main>
 
       {/* Certificate Modal */}
